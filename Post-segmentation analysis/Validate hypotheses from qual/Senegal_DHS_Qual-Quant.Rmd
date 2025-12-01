@@ -1,0 +1,2331 @@
+---
+title: "Senegal_DHS_Qualitative-Quantitative_Validation"
+author: "Lang Gao"
+date: "2025-06-04"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '6'
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+---
+
+<style type="text/css">
+
+h1.title {
+  font-size: 21px;
+  color: Blue;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Blue;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Blue;
+  text-align: center;
+}
+
+</style>
+
+</br>
+
+
+***
+---
+
+##############################################
+0. Setting up the script and data preparation
+##############################################
+Set up filepath, notation and packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+options(scipen = 100, digits = 4)
+
+#Set filepath
+setwd("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/Modeling")
+```
+
+Load packages
+```{r,echo=FALSE}
+rm(list=ls())
+pacman::p_load( "tidyverse","readxl","ggplot2","ggalluvial","ggrepel","gridExtra","cowplot","survey","dplyr","scales","RColorBrewer", "networkD3", "grid","fastDummies","tidyr", "foreign", "haven", "corrplot", "forcats", "vtable", "srvyr", "readr", "vtable", "data.table", "kableExtra", "lavaan", "lme4", "nnet", "ggmosaic")
+pacman:: p_load("rpart", "rpart.plot", "caret", "randomForest", "broom", "car", "cluster", "dendextend", "purrr")
+```
+
+```{r}
+### Reasons of not using
+## Do not take it as relevant:
+#l: Religious prohibition (18 yes) (God's will)
+#h: Fatalistic (294 yes) (demonstrating a belief that all events are inevitable, so one's choices and actions make no difference)
+#i: herself oppose (177 yes)
+#z: don't know (42 "yes: don't know") #l+h+i+z: 531
+
+# Perceive as not needed:
+#a: not married (2 yes) 
+#b: not having sex (226 yes)  
+#c: Infrequent sex (238 yes) 
+#d: Menopausal or hysterectomy (33 yes)
+#f: Postpartum amenorrheic (temparay postpartum infertility) (429 yes)
+#g: breastfeeding (622 yes)
+## the above 6: 1550
+
+## Intended but not using:
+#J: partner oppose (474)
+#k: others opposed (3 yes)
+#m: know no method (2 yes)  
+#n: know no source (2 yes) 
+#q: Lack of access/too far (13 yes)
+#u: preferred method not available (2 yes)
+#r: costs too much (15 yes)
+#p: fear of side effects/health concerns (330 yes)
+##841 for the above
+
+#t: Interferes with bodys processes (9 yes)
+#s: inconvenient to use (1 yes)
+#x: other reasons (not specified, 136 yes)
+#146 for the above 3
+
+#table(senegal$v3a08u, useNA = "always") # 2 yes #5424 NAs
+```
+
+Read in merged RDS created from profile script
+```{r, eval=FALSE}
+rural <- readRDS("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/final_data/SEN.rural.all.class.rds")
+urban <- readRDS("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/final_data/SEN.urban.all.class.rds")
+senegal <- readRDS("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/final_data/Senegal.all.class.rds")
+# dim(senegal) #7816  331
+# senegal$hv014
+```
+
+Read in original DHS data and merge
+```{r, eval=FALSE}
+HH1 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/SNHR81FL.DTA"))
+HH1 <- HH1 %>%
+  mutate(survey = "SN81FL")
+#HH2 is from Senegal standard DHS 2019
+HH2 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/SNHR8BFL.DTA"))
+HH2 <- HH2 %>%
+  mutate(survey = "SN8BFL")
+
+# dim(HH1)
+# dim(HH2)
+HH <- rbind(HH1, HH2, fill=TRUE)
+# dim(HH)
+
+HH$v001<-HH$hv001
+HH$v002<-HH$hv002
+#Variables to be used from original DHS
+HH.select <- HH %>%
+  dplyr::select(v001, v002, survey, hv010, hv014)
+# dim(HH.select)
+
+# #IR: v614, v613, m13_1, v502, v528, v626a, v312, v313, v362, v219, v626a, v393a, v394, v395, v384a, v384b, v384c, v384d, v3a02, v3a03, v3a04, v3a05, v3a06, v217, v327, v505, v364, v367, v359, v360, v380, v361, m14_1, v213, v602, v604
+IR1 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/SNIR81FL.DTA"))
+IR1 <- IR1 %>%
+  mutate(survey = "SN81FL")
+IR2 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/SNIR8BFL.DTA"))
+IR2 <- IR2 %>%
+  mutate(survey = "SN8BFL")
+IR <- rbind(IR1, IR2, fill=TRUE)
+
+IR.select <- IR %>%
+  dplyr::select(v001, v002, caseid, survey, v614, v613, m13_1, v502, v528, v626a, v312, v313, v362, v219, v626a, v393a, v394, v395, v384a, v384b, v384c, v384d, v3a02, v3a03, v3a04, v3a05, v3a06, v217, v327, v505, v364, v367, v359, v360, v380, v361, m14_1, v213, v602, v604)
+
+#KR: h3, h5, h7, caseid
+KR1 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/R codes/IDM codes/Script version 2.0/dhs_data/SNKR81FL.DTA"))
+KR1 <- KR1 %>%
+    mutate(dpt1 = case_when(h3%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h3%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dpt2 = case_when(h5%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h5%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dpt3 = case_when(h7%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h7%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dptsum = dpt1 + dpt2 + dpt3) %>%
+    mutate(dpt.full = case_when(is.na(dptsum) ~ NA, dptsum == 3 ~ 1, TRUE ~ 0)) %>%
+    mutate(zero.dose = case_when(is.na(dptsum) ~ NA, dptsum == 0 ~ 1, TRUE ~ 0))
+
+KR1.select <- KR1 %>%
+  group_by(caseid) %>%
+  dplyr::summarize(k.rost = length(caseid),
+                   dpt.full.cnt = ifelse(all(is.na(dpt.full)), NA, sum(dpt.full, na.rm=TRUE))) %>%
+  mutate(dpt.full.yn = ifelse(dpt.full.cnt > 0, 1, 0))
+KR1.select <- KR1.select %>%
+  mutate(survey = "SN81FL")
+
+
+KR2 <- data.table(read.dta("/Users/langgao/Downloads/Freelancer projects/Sonder/R codes/IDM codes/Script version 2.0/dhs_data/SNKR8BFL.DTA"))
+KR2 <- KR2 %>%
+    mutate(dpt1 = case_when(h3%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h3%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dpt2 = case_when(h5%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h5%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dpt3 = case_when(h7%in%c("vaccination date on card","vaccination marked on card","reported by mother") ~ 1, h7%in%c("no","don't know") ~ 0  )) %>%
+    mutate(dptsum = dpt1 + dpt2 + dpt3) %>%
+    mutate(dpt.full = case_when(is.na(dptsum) ~ NA, dptsum == 3 ~ 1, TRUE ~ 0)) %>%
+    mutate(zero.dose = case_when(is.na(dptsum) ~ NA, dptsum == 0 ~ 1, TRUE ~ 0))
+KR2.select <- KR2 %>%
+  group_by(caseid) %>%
+  dplyr::summarize(k.rost = length(caseid),
+                   dpt.full.cnt = ifelse(all(is.na(dpt.full)), NA, sum(dpt.full, na.rm=TRUE))) %>%
+  mutate(dpt.full.yn = ifelse(dpt.full.cnt > 0, 1, 0))
+KR2.select <- KR2.select %>%
+  mutate(survey = "SN8BFL")
+
+KR.select <- rbind(KR1.select, KR2.select, fill=TRUE)
+# dim(KR.select) #9049    5
+```
+
+```{r, eval=FALSE}
+# table(senegal$zerodose.cnt, useNA = "always")
+# table(senegal$zerodose.yn, useNA = "always")
+IR.select <- IR.select %>%
+    base::merge(KR.select, by=c("caseid", "survey"), all.x=TRUE)
+IR.select <- IR.select %>%
+  base::merge(HH.select, by=c("v001", "v002", "survey"), all.x=TRUE)
+# dim(IR.select) #18063    12
+rural <- merge(rural, IR.select, by = c("caseid", "survey"), all.x = TRUE)
+urban <- merge(urban, IR.select, by = c("caseid", "survey"), all.x = TRUE)
+senegal <- merge(senegal, IR.select, by = c("caseid", "survey"), all.x = TRUE)
+
+saveRDS(senegal, "Senegal_merged.rds")
+saveRDS(rural, "Rural_merged.rds")
+saveRDS(urban, "Urban_merged.rds")
+dim(senegal) #7816  373
+dim(rural) #5527  373
+dim(urban) #2289  373
+```
+
+Read in newly merged RDS
+```{r}
+rural <- readRDS("Rural_merged.rds")
+urban <- readRDS("Urban_merged.rds")
+senegal <- readRDS("Senegal_merged.rds")
+# dim(senegal) #7816  373
+# dim(rural) #5527  373
+# dim(urban) #2289  373
+```
+
+Remove U3.2
+```{r, echo=TRUE}
+#Here for modeling purpose, we exclude the segment U3.2
+```
+
+```{r}
+#dim(senegal) #7816
+#table(senegal$class) #U3.2-S 
+senegal <- senegal %>% 
+  filter(class != "U3.2-S")
+#table(senegal$class)
+#dim(senegal) #7749  298
+#7816-7749=67
+urban <- urban %>% 
+  filter(class != "U3.2-S")
+#table(urban$class)
+```
+
+```{r, eval=FALSE}
+#table(senegal$v626a, useNA = "always")
+#Total demand for contraception: v626a == "unmet need for spacing" | "unmet need for limiting" | "using for spacing" | "using for limiting" (i.e., relevant but not use + relevant and using)
+#1350+425 = 1775 unmet needs (e.g., claimed need for spacing or limiting but not currently using any)
+#1466 + 613 = 2079 met needs (e.g., currently using ANY)
+#So, 5670 are either currently not using
+#not married and no sex in last 30 days: 124
+#infecund, menopausal: 765
+#3008: no unmet need
+#2 NAs
+
+#table(senegal$v213, useNA = "always") #878 currently pregnant
+#table(senegal$v602, useNA = "always")
+# fer.pref1 <- senegal %>% 
+#   filter(v313 == "no method") %>%
+#   filter(v213 != "yes") %>% 
+#   filter(!v604 %in% c("<12 months", "1 year"))
+# 
+# fer.pref2 <- senegal %>% 
+#   filter(v313 == "no method") %>%
+#   filter(v213 != "yes") %>% 
+#   filter(v604  == "<12 months")
+# 
+# #dim(fer.pref1)  
+# #table(senegal$v313)
+# #table(senegal$v604, useNA = "always")
+# #table(fer.pref1$v602)
+# #table(fer.pref1$v604)
+# 
+# dim(fer.pref2)
+# table(fer.pref2$v604, fer.pref2$v364)
+# table(senegal$v362)
+```
+
+```{r, echo=TRUE}
+#Recode a variable for mCP current use so that 1 = currently using.
+#class(senegal$nofp.mod.now)
+senegal <- senegal %>% 
+  mutate(fp.mod.now = ifelse(nofp.mod.now == 0, 1, 0))
+#table(senegal$fp.mod.now)
+#class(senegal$fp.mod.now) #numeric
+#summary(senegal$fp.mod, useNA = "always") #no NA
+rural <- rural %>% 
+  mutate(fp.mod.now = ifelse(nofp.mod.now == 0, 1, 0))
+urban <- urban %>% 
+  mutate(fp.mod.now = ifelse(nofp.mod.now == 0, 1, 0))
+```
+
+## 0. New Variables Coding
+```{r}
+#senegal$v012 #age, numeric
+senegal <- senegal %>% 
+  mutate(age.adj = case_when(
+    v012 < 20 ~ "15-19",
+    (v012 > 19 & v012 < 25) ~ "20-24",
+    (v012 > 24 & v012 < 30) ~ "25-29",
+    (v012 > 29 & v012 < 35) ~ "30-34",
+    TRUE ~ "35-49"))
+#table(senegal$age.adj)
+```
+
+Code new potenetial vulnerabilities, add to excel
+```{r}
+#v219: number of living children including current pregnancy
+#table(senegal$v219, useNA = "always")
+#summary(senegal$v219) #1st qu:2, median: 3, mean 3.62, 3rd qu 5
+senegal <- senegal %>% 
+  mutate(live.child = case_when(
+    v219 < 3 ~ "[0, 2]",
+    v219 > 2 & v219 < 5 ~ "[3, 4]",
+    TRUE ~ "5+"))
+#table(senegal$live.child)
+rural <- rural %>% 
+  mutate(live.child = case_when(
+    v219 < 3 ~ "[0, 2]",
+    v219 > 2 & v219 < 5 ~ "[3, 4]",
+    TRUE ~ "5+"))
+urban <- urban %>% 
+  mutate(live.child = case_when(
+    v219 < 3 ~ "[0, 2]",
+    v219 > 2 & v219 < 5 ~ "[3, 4]",
+    TRUE ~ "5+"))
+
+#Contact of nonursers with FP providers:
+  ##v393a: Did fieldworker visit in the preceding 12 months who talked about family planning
+  ##v394: woman Visited health facility last 12 months
+  ##v395: At health facility, told of family planning (i.e. woman and fieldwork discussed FP during her visit)
+
+#table(senegal$v393a, useNA = "always") #6984 NAs, IDM coded them as 0 in hw.visit.12mo
+#table(senegal$v394, useNA = "always")
+#table(senegal$v395, useNA = "always") #1879 NAs from those who did not visit 
+
+senegal <- senegal %>% 
+  mutate(disc.fp.hw = case_when(
+   ((v394 == "yes" & v395 == "yes")| v393a == "yes") ~ 1,
+   TRUE ~ 0))
+#table(senegal$disc.fp.hw, useNA = "always")
+rural <- rural %>% 
+  mutate(disc.fp.hw = case_when(
+   ((v394 == "yes" & v395 == "yes")| v393a == "yes") ~ 1,
+   TRUE ~ 0))
+urban <- urban %>% 
+  mutate(disc.fp.hw = case_when(
+   ((v394 == "yes" & v395 == "yes")| v393a == "yes") ~ 1,
+   TRUE ~ 0))
+
+#Exposure to FP messages: 
+  ##v384a: Heard family planning in radio last few months (women) (there seems a mistake on DHS-8 guide that it mistakenly define this as newspaper/magazine for woman)
+  ##v384b: Heard family planning on TV last few months (women)
+  ##v384c: Heard family planning in newspaper/magazine last few months (women)
+  ##v384d: Heard family planning by text messages on mobile phone (women)
+  ##v005: Woman’s individual sample weight
+#table(senegal$v384c) #only 391 yes, too small for modeling, but can be used for descriptive
+#table(senegal$v384d) #only 59 yes, too small for modeling, but can be used for descriptive
+senegal$fp.radio <- ifelse(senegal$v384a == "yes", 1, 0)
+rural$fp.radio <- ifelse(rural$v384a == "yes", 1, 0)
+urban$fp.radio <- ifelse(urban$v384a == "yes", 1, 0)
+
+senegal$fp.tv <- ifelse(senegal$v384b == "yes", 1, 0)
+rural$fp.tv <- ifelse(rural$v384b == "yes", 1, 0)
+urban$fp.tv <- ifelse(urban$v384b == "yes", 1, 0)
+```
+
+```{r}
+#For the FP profiles, main addition to previous FP modeling:
+  ##user types: created a few more user types, one on future use intention is added to both modeling and descriptives
+  ##modeling: remove variables with high percentage of NAs, removed some variables (e.g., part.workingnow.yn, or those with a way-too-small category) that were not coded properly in IDM's script; add a few more potential influential factors, removed variables that are from same raw data thus highly correlated with another highly-performing variables (i.e., duplication); examine association between individual independent variable and 2 focused outcome variable fp.mod.now, fp.intention), adjust modeling methods accordingly
+  ##descriptive analysis 
+  ##"clustering" segments based on their FP use
+```
+
+### 0.1. Create user types [by Feb 2025]
+#### 0.1.1. Current FP use, binary
+```{r}
+#whether use mCP
+  #table(senegal$fp.mod.now, useNA = "always") #current use of mCP
+#whether use any FP (including traditional; not many, major )
+#table(senegal$v313, useNA = "always")
+senegal$fp.any.now <- ifelse(senegal$v313 == "no method", 0, 1)
+#table(senegal$fp.any.now, useNA = "always")
+rural$fp.any.now <- ifelse(rural$v313 == "no method", 0, 1)
+urban$fp.any.now <- ifelse(urban$v313 == "no method", 0, 1)
+```
+
+#### 0.1.2. Ever use (current and past)
+```{r}
+#v361
+#table(senegal$v361, useNA = "always")
+senegal <- senegal %>% 
+  mutate(fp.ever = case_when(
+    v361 == "never used" ~ 0,
+    TRUE ~ 1))
+#table(senegal$fp.ever, useNA = "always")
+rural <- rural %>% 
+  mutate(fp.ever = case_when(
+    v361 == "never used" ~ 0,
+    TRUE ~ 1))
+urban <- urban %>% 
+  mutate(fp.ever = case_when(
+    v361 == "never used" ~ 0,
+    TRUE ~ 1))
+
+senegal <- senegal %>% 
+  mutate(fp.experience = case_when(
+    v361 == "currently using" ~ "Currently use",
+    v361 == "never used" ~ "Never used",
+    TRUE ~ "Used before"))
+#table(senegal$fp.experience, useNA = "always") #currently use, 2079, matching the subtotal of "met need for spacing" + "met need for limiting" #to create another variable that differentiate "Currently using for spacing", "currently using for limiting".
+rural <- rural %>% 
+  mutate(fp.experience = case_when(
+    v361 == "currently using" ~ "Currently use",
+    v361 == "never used" ~ "Never used",
+    TRUE ~ "Used before"))
+urban <- urban %>% 
+  mutate(fp.experience = case_when(
+    v361 == "currently using" ~ "Currently use",
+    v361 == "never used" ~ "Never used",
+    TRUE ~ "Used before"))
+```
+
+
+#### 0.1.3. Intention (Current and future)
+```{r}
+#v364
+#table(senegal$v364, useNA = "always")
+senegal <- senegal %>% 
+  mutate(fp.intention = case_when(
+    v364 == "does not intend to use" ~ "No intention",
+    v364 == "non-user - intends to use later" ~ "To use later",
+    v364 == "using modern method" ~ "Current mCP",
+    TRUE ~ "Current traditional"))
+#table(senegal$fp.intention, useNA = "always")
+
+rural <- rural %>% 
+  mutate(fp.intention = case_when(
+    v364 == "does not intend to use" ~ "No intention",
+    v364 == "non-user - intends to use later" ~ "To use later",
+    v364 == "using modern method" ~ "Current mCP",
+    TRUE ~ "Current traditional"))
+urban <- urban %>% 
+  mutate(fp.intention = case_when(
+    v364 == "does not intend to use" ~ "No intention",
+    v364 == "non-user - intends to use later" ~ "To use later",
+    v364 == "using modern method" ~ "Current mCP",
+    TRUE ~ "Current traditional"))
+#table(urban$fp.intention, useNA = "always")
+#table(rural$fp.intention, useNA = "always")
+```
+
+#### 0.1.4. Need and Use
+```{r}
+#table(senegal$v3a08u, useNA = "always") #5424 "no need"; 2325 "need"
+#To exclusively separte NA: currently pregant; already using; and the rest as "no identified need now"
+senegal$fp.reason.answer <- ifelse(is.na(senegal$v3a08u), 0, 1)
+senegal <- senegal %>% 
+  mutate(fp.needanduse = case_when(
+    v364 == "using modern method" ~ "Current mCP",
+    v364 == "using traditional method" ~ "Current traditional",
+    v213 == "yes" ~ "Pregnant",
+    fp.reason.answer == 1 ~ "Has need yet not using",
+    TRUE ~ "No identified need"))
+#table(senegal$fp.needanduse, useNA = "always")
+#2079 (currently using: 1968 Current mCP, 111 Current traditional), 2325 (Has need yet not using), 2467 (No identified need), 878 (Pregnant)
+#dim(senegal)
+```
+
+```{r}
+neednotuse_data <- senegal %>%
+  filter(fp.needanduse == "Has need yet not using") %>%
+  group_by(fp.intention) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(percentage = (count / 2325) * 100) %>%
+  arrange(desc(count))
+neednotuse_data
+#1561 (no intention, 67%) + 764 (to use later, 33%) = 2325
+
+noneed_data <- senegal %>%
+  filter(fp.needanduse == "No identified need") %>%
+  group_by(fp.intention) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(percentage = (count / 2467) * 100) %>%
+  arrange(desc(count))
+noneed_data
+#1937 (No intention, 79%) + 530 (to use later, 21%)
+
+pregnant_data <- senegal %>%
+  filter(fp.needanduse == "Pregnant") %>%
+  group_by(fp.intention) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(percentage = (count / 878) * 100) %>%
+  arrange(desc(count))
+pregnant_data
+#457 (no intention, 52%) + 421 (to use later, 48%)
+
+```
+
+##### 0.1.4.1. To look closer (need yet not use - why; intention for future)
+```{r}
+# Filter dataset for those with "No intention" and "To use later"
+filtered_data <- senegal %>%
+  filter(fp.intention %in% c("No intention", "To use later"))
+
+# Select relevant columns (FP intention and reasons for not using FP)
+reason_vars <- names(filtered_data)[grepl("^v3a08[a-x]$", names(filtered_data))]  # Identify all v308* columns
+filtered_data <- filtered_data %>%
+  dplyr::select(fp.intention, all_of(reason_vars), age.adj)
+
+# Convert wide format to long format
+long_data <- filtered_data %>%
+  pivot_longer(cols = reason_vars, names_to = "reason", values_to = "selected") %>%
+  filter(selected == "yes")  # Keep only reasons that were selected (assuming 1 = Yes, 0 = No)
+#long_data
+# Count occurrences of each reason per FP intention category
+reason_counts <- long_data %>%
+  group_by(fp.intention, reason, age.adj) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  arrange(fp.intention, desc(count))
+
+# Print table of reason counts
+print(reason_counts)
+```
+
+```{r}
+# Plot the distribution of reasons for not using FP
+ggplot(reason_counts, aes(x = reorder(reason, count), y = count, fill = age.adj)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title = "Reasons for Not Using Family Planning",
+       x = "Reason",
+       y = "Count",
+       fill = "Age") +
+  theme_minimal()
+
+```
+
+```{r}
+# Plot the distribution of reasons for not using FP
+ggplot(reason_counts, aes(x = reorder(reason, count), y = count, fill = fp.intention)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(title = "Reasons for Not Using Family Planning",
+       x = "Reason",
+       y = "Count",
+       fill = "FP Intention") +
+  theme_minimal()
+
+```
+
+##### 0.1.4.2. Create a more detailed variable on intention
+```{r}
+#table(senegal$fp.intention)
+#table((senegal$fp.needanduse))
+```
+
+```{r}
+senegal <- senegal %>% 
+  mutate(fp.intention.detail = case_when(
+    fp.intention %in% c("Current mCP", "Current traditional") ~ "Currently using",
+    fp.intention == "To use later" ~ "To use later",
+    (fp.needanduse == "Has need yet not using" & fp.intention == "No intention") ~ "Has need but no intention",
+    (fp.needanduse == "Pregnant" & fp.intention == "No intention") ~ "Pregnant but no intention later",
+    TRUE ~ "No identified need and no intention"))
+
+#seperate mCP and traditional
+senegal <- senegal %>% 
+  mutate(fp.intention.detail1= case_when(
+    fp.intention == "Current mCP" ~ "Current mCP",
+    fp.intention == "Current traditional"  ~ "Current traditional",
+    fp.intention == "To use later" ~ "To use later",
+    (fp.needanduse == "Has need yet not using" & fp.intention == "No intention") ~ "Has need but no intention",
+    (fp.needanduse == "Pregnant" & fp.intention == "No intention") ~ "Pregnant and no intention later",
+    TRUE ~ "No identified need and no intention"))
+```
+
+### 0.2. Create user types [new categories, March 2025]
+```{r, echo=TRUE}
+#Here, we define user types from a new perspective, as following:
+#1.Currently using FP 
+#2. No need: (a) Infecund (b) Sterile 
+#3.Future need (women don’t consider FP relevant): (a) Currently preg (b) Undecided (c) Wants child in < 2years (d) Wants another child in >2 years or wants no more, but has had no sex in 1+year AND "No intention"
+#4. Future need (women consider FP relevant): (a) Currently preg (b) Undecided (c) Wants child in < 2years (d) Wants another child in >2 years or wants no more, but has had no sex in 1+year AND "To use later"
+#5.Current need- (women don’t consider FP relevant): Women who are asked the reasons for not using in DHS, AND "intend to use later"
+#6. Current need- (women consider FP relevant): Women who are asked the reasons for not using in DHS, AND "intend to use later"
+
+##use: fp.needanduse, v602 (fertility preference), fp.intention
+# table(senegal$fp.needanduse, useNA = "always")
+# table(senegal$v602, useNA = "always")
+# table(senegal$fp.intention, useNA = "always")
+# table(senegal$v602, senegal$fp.needanduse, useNA = "always")
+```
+
+```{r, echo=TRUE}
+senegal <- senegal %>% 
+  mutate(fp.new.cat = case_when(
+    fp.needanduse %in% c("Current mCP", "Current traditional") ~ "Current using",
+    fp.needanduse == "Has need yet not using" ~ "Current need",
+    (v602 %in% c("declared infecund", "sterilized (respondent or partner)") & (fp.needanduse != "Pregnant")) ~ "No need",
+    TRUE ~ "Future need"))
+
+senegal <- senegal %>% 
+  mutate(fp.new.cat.detail = case_when(
+    fp.new.cat == "Current using" ~ "Current using",
+    fp.new.cat == "No need" ~ "No need",
+    (fp.new.cat=="Future need" & fp.intention == "No intention") ~ "Future need, irrelevant",
+    (fp.new.cat=="Future need" & fp.intention == "To use later") ~ "Future need, relevant",
+    (fp.new.cat=="Current need" & fp.intention == "No intention") ~ "Current need, irrelevant",
+    (fp.new.cat=="Current need" & fp.intention == "To use later") ~ "Current need, relevant"))
+
+# table(senegal$fp.new.cat, useNA = "always")
+# table(senegal$fp.new.cat.detail, useNA = "always")
+#sum(1561, 764, 2079, 2291, 949, 104) #7749
+#dim(senegal) #7749
+```
+
+```{r}
+# table(senegal$fp.new.cat.detail)
+#Create a binary variable for FP relevance:
+senegal <- senegal %>% 
+  mutate(fp.relevance = case_when(
+    fp.new.cat.detail %in% c("Current need, relevant", "Current using", "Future need, relevant") ~ 1,
+    TRUE ~ 0))
+#table(senegal$fp.relevance, senegal$class, useNA = "always") #almost 50-50
+```
+
+```{r}
+rural$class <- factor(rural$class)
+urban$class <- factor(urban$class)
+senegal$class <- factor(senegal$class)
+rural.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=rural)
+urban.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=urban)
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+```
+
+## 1. Perceived FP Relevance
+### 1.1. Perceived FP relevance and age
+#### 1.1.0. Age continuous
+```{r}
+# Fit logistic regression with continuous age
+model_cont <- glm(fp.relevance ~ v012, data = senegal, family = binomial)
+# Create a sequence of ages for prediction (within observed range)
+age_seq <- data.frame(v012 = seq(min(senegal$v012, na.rm = TRUE),
+                                 max(senegal$v012, na.rm = TRUE), by = 1))
+# Predict probabilities with CIs
+pred <- predict(model_cont, newdata = age_seq, type = "link", se.fit = TRUE)
+
+# Convert to probabilities and prep data
+age_seq$predicted_prob <- plogis(pred$fit)
+age_seq$lower_ci <- plogis(pred$fit - 1.96 * pred$se.fit)
+age_seq$upper_ci <- plogis(pred$fit + 1.96 * pred$se.fit)
+
+ggplot(age_seq, aes(x = v012, y = predicted_prob)) +
+  geom_line(color = "blue", size = 1) +
+  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), alpha = 0.2) +
+  labs(title = "Predicted Probability of FP Relevance by Age",
+       x = "Age (Years)",
+       y = "Predicted Probability") +
+  theme_minimal()
+```
+
+#### 1.1.1. Age category and relevance binary
+```{r}
+#Goal: Test if age brackets predict whether women consider FP relevant (fp.relevant).
+#Model: Use a logistic regression (for binary dependant var fp.relevance).
+senegal$age.adj <- factor(senegal$age.adj)
+# Logistic regression model
+model1 <- glm(fp.relevance ~ age.adj, data = senegal, family = binomial(link = "logit"))
+summary(model1)
+
+ggplot(senegal, aes(x = age.adj, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Women Considering FP Relevant by Age",
+       x = "Age Bracket", y = "Proportion", fill = "FP Relevant (1=Yes)")
+```
+
+```{r}
+exp(coef(model1))
+```
+
+#### 1.1.2. Variation across segments
+```{r, echo=TRUE}
+# From interaction model and the comparison: while individual interaction terms may not be strong, the combined pattern of differences matters. The age effect is not uniform across segments.
+# From additive mode:
+  ## Some segments (U1-S, U2.1-S) are more likely, and others (R4-S, R3.2-S) are less likely to find FP relevant, regardless of age.
+  ## Women aged 25-29 appear more likely to find FP relevant in general.
+```
+
+```{r}
+# Goal: Test if the relationship between age and FP relevance varies by segment.
+# Approach: Include an interaction term (age_bracket * segment) in the model.
+
+# Model with interaction (interaction)
+  ##This is allowing the effect of age bracket to vary by segment 
+model2.0 <- glm(fp.relevance ~ age.adj * class, 
+              data = senegal, 
+              family = binomial)
+summary(model2.0)
+
+# Compare models with/without interaction (likelihood ratio test - whether adding the interaction significantly improves model fit)
+  ##This is assuming the effect of age is the same across all classes (additive)
+model2.1 <- glm(fp.relevance ~ age.adj + class, data = senegal, family = binomial)
+summary(model2.1)
+
+anova(model2.1, model2.0, test = "LRT")
+```
+
+```{r}
+fp.re <- ggplot(senegal, aes(x = age.adj, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ class, ncol = 4) +  # Fixed formula syntax (~ instead of -)
+  labs(title = "FP Relevance by Age and Segment", x = "Age", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+  scale_fill_discrete(name = "Find FP Relevant", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+
+ggsave("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/Modeling/Pics/FP relevance by seg.png", plot = fp.re, width = 7, height = 5.5, dpi = 300)
+fp.re
+```
+
+```{r}
+fp.re1 <- ggplot(senegal, aes(x = class, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ age.adj, ncol = 3) +
+  labs(title = "FP Relevance by Segment and Age", x = "Segment", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+  scale_fill_discrete(name = "Find FP Relevant", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+
+ggsave("/Users/langgao/Downloads/Freelancer projects/Sonder/Senegal/Modeling/Pics/FP relevance by age.png", plot = fp.re1, width = 7, height = 5.5, dpi = 300)
+fp.re1
+```
+
+#### 1.1.3. Predict probability
+```{r, echo=TRUE}
+#U1-S and U2.1-S have the highest predicted relevance after 20 years old, while R4-S and R3.2-S consistently show lower relevance across ages.
+#CI (error) bars for 15-19 are typically long for urban segments, indicating high uncertainty in those estimation;  likely small sample size (see plot in 1.1.3.0).
+#Around age 35–49, predicted probabilities seem to converge across segments, with all segments landing around 45%–60%. This could indicate age dampens segment-based differences in later reproductive years - Younger women’s FP attitudes are more strongly shaped by segment differences, while getting older regardless of segment,they tend to report similar levels of FP relevance.
+#Some segments show peaks or drops that may suggest non-linear patterns, especially where confidence is narrower (e.g., R3.1-S peaking at 25–29, and R4-S had a peak at 30-34).
+
+# To Plash: any other sugegstions on age group?
+```
+
+```{r}
+new_data <- expand.grid(
+  age.adj = levels(senegal$age.adj),
+  class = levels(senegal$class))
+
+# Add predicted probabilities and CIs
+pred <- predict(model2.0, newdata = new_data, type = "link", se.fit = TRUE)
+new_data$fit <- pred$fit
+new_data$se.fit <- pred$se.fit
+new_data$predicted_prob <- plogis(new_data$fit)
+new_data$ci_lower <- plogis(new_data$fit - 1.96 * new_data$se.fit)
+new_data$ci_upper <- plogis(new_data$fit + 1.96 * new_data$se.fit)
+
+ggplot(new_data, aes(x = age.adj, y = predicted_prob, color = class, group = class)) +
+  geom_line(position = position_dodge(width = 0.5)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Predicted Probability of FP Relevance by Age and Segment",
+    x = "Age",
+    y = "Predicted Probability of FP Relevance",
+    color = "Segment"
+  ) +
+  theme_minimal()
+```
+
+##### 1.1.3.0. Look at age distribution by segment
+```{r}
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+
+seg.age <- svytable(~class + age.adj, design = senegal.des)
+seg.age <- as.data.frame(seg.age)
+
+seg.age <- seg.age %>%
+  group_by(class) %>% 
+  mutate(perc = ((Freq / sum(Freq)) * 100)) %>% 
+  ungroup()
+
+ggplot(seg.age, aes(x = class, y = perc, fill = age.adj)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.5) +
+  geom_text(aes(label = paste0(round(perc, 0), "%")), position = position_stack(vjust = 0.5), size = 3, color = "orange") +
+  labs(x = "Age", y = "Percentage", fill = "Segment", title = "Age Distribution within Segment") +
+  scale_fill_manual(values = c("#e5f0feff", "#99c4ff", "#4f88d5ff", "#386CB0", "#1d406fff")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5))
+
+seg.age
+```
+### 1.2. Polygamy and Ideal/Actual Number of Children
+```{r, echo=TRUE}
+#For modeling purpose, exclude the "not partnered" because the small counts cause warning for chi-sqaure 
+```
+
+```{r}
+#table(senegal$polygamy)
+sen.poly <- senegal %>% 
+  filter(polygamy != "not partnered")
+#dim(sen.poly)
+```
+
+```{r}
+#Goal: Test if polygamy correlates with:
+  ##Ideal number of children (ideal.n.child.moh.cat, categorical)
+  ##Actual number of children (var 1: num.child.alive, numeric; var 2: num.child.alive.cat, categorical)
+```
+
+#### 1.2.1. For ideal number of children (cat)
+```{r}
+##Ideal number of children (ideal.n.child.moh.cat, categorical)， use Chi-square test
+chisq.test(table(sen.poly$polygamy, sen.poly$ideal.n.child.moh.cat))
+```
+
+#### 1.2.2. For actual number of children (numeric, normal dist.)
+```{r}
+qqnorm(sen.poly$num.child.alive, main = "Q-Q Plot for Normality")
+qqline(sen.poly$num.child.alive, col = "red")
+```
+
+```{r}
+t.test(num.child.alive ~ polygamy, data = sen.poly)
+```
+
+### 1.3. Age at marriage >16
+```{r}
+#v511: Age at start of first marriage or union
+#table(senegal$age.1stcohab) #character
+#table(senegal$v511, useNA = "always") # ~ 60 obs. 1st cohab at <= 10 yrs. 0 NA.
+senegal <- senegal %>% 
+  mutate(age.1stcohab.17plus = case_when(
+    v511 > 16 ~ "17+ yrs",
+    v511 <= 16 ~ "16 yrs or younger"))
+#table(senegal$age.1stcohab.17plus, useNA = "always")
+```
+
+#### 1.3.1. Age at 1st marriage and FP relevance
+```{r, echo=TRUE}
+#From the model3 below: p = 0.000000000000015; later age at first marriage or cohabitation is associated with higher odds of considering FP relevant.
+```
+
+```{r}
+senegal$age.1stcohab.17plus <- factor(senegal$age.1stcohab.17plus)
+# Logistic regression model
+model3 <- glm(fp.relevance ~ age.1stcohab.17plus, data = senegal, family = binomial(link = "logit"))
+summary(model3)
+
+ggplot(senegal, aes(x = age.1stcohab.17plus, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  labs(title = "Proportion of Women Considering FP Relevant by Age",
+       x = "Age at 1st Marriage/Cohabitation", y = "Proportion", fill = "FP Relevant (1=Yes)")
+```
+
+#### 1.3.2. Variation across segments
+```{r, echo=TRUE}
+#interaction: In R3.2-S, the positive effect of later cohabitation is weaker or even reversed compared to R2-S. The odd ratio ≈ exp(0.2155 - 0.3204) ≈ 0.90, no longer a positive effect.
+```
+
+```{r}
+# Goal: Test if the relationship between age at 1st marriage and FP relevance varies by segment.
+# Approach: Include an interaction term (age.1stcohab.17plus * segment) in the model.
+
+# Model with interaction
+model3.0 <- glm(fp.relevance ~ age.1stcohab.17plus * class, 
+              data = senegal, 
+              family = binomial)
+summary(model3.0)
+
+# Compare models with/without interaction (likelihood ratio test)
+model3.1 <- glm(fp.relevance ~ age.1stcohab.17plus + class, data = senegal, family = binomial)
+summary(model3.1)
+anova(model3.1, model3.0, test = "LRT")
+```
+
+```{r}
+fp.re2 <- ggplot(senegal, aes(x = age.1stcohab.17plus, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ class, ncol = 4) +  # Fixed formula syntax (~ instead of -)
+  labs(title = "FP Relevance by Age at 1st Marriage and Segment", x = "Age at 1st Marriage", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+  scale_fill_discrete(name = "Find FP Relevant", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+
+fp.re2
+```
+
+```{r}
+ggplot(senegal, aes(x = class, fill = factor(fp.relevance))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ age.1stcohab.17plus, ncol = 2) +
+  labs(title = "FP Relevance by Segment and Age at 1st Marriage", x = "Segment", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_discrete(name = "Find FP Relevant", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+```
+
+#### 1.3.3. Predict probability
+```{r, echo=TRUE}
+#For R4-S and U2.1, U2.2, getting married at younger or older age does not necessarily influence perceived FP relevance. It is something else that influence it.
+#For U1 and U3.1, marring at a later age associates with higher odds of considering FP relevant.
+```
+
+```{r}
+new_data <- expand.grid(
+  age.1stcohab.17plus = levels(senegal$age.1stcohab.17plus),
+  class = levels(senegal$class))
+
+# Add predicted probabilities and CIs
+pred <- predict(model3.0, newdata = new_data, type = "link", se.fit = TRUE)
+new_data$fit <- pred$fit
+new_data$se.fit <- pred$se.fit
+new_data$predicted_prob <- plogis(new_data$fit)
+new_data$ci_lower <- plogis(new_data$fit - 1.96 * new_data$se.fit)
+new_data$ci_upper <- plogis(new_data$fit + 1.96 * new_data$se.fit)
+
+ggplot(new_data, aes(x = age.1stcohab.17plus, y = predicted_prob, color = class, group = class)) +
+  geom_line(position = position_dodge(width = 0.5)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Predicted Probability of FP Relevance by Age and Segment",
+    x = "Age at 1st Marriage",
+    y = "Predicted Probability of FP Relevance",
+    color = "Segment"
+  ) +
+  theme_minimal()
+```
+
+### 1.4. Number of children
+```{r}
+##Ideal number of children (ideal.n.child.moh.cat, categorical)
+##Actual number of children (var 1: num.child.alive, numeric; var 2: num.child.alive.cat, categorical)
+
+#senegal$num.child.alive
+#senegal$num.preg
+```
+
+#### 1.4.1. With age
+##### 1.4.1. Number of preg and children (linear positively associated with age)
+```{r}
+ggplot(senegal, aes(x = age.adj, y = num.child.alive, fill = class)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of Number of Living Children by Age and Segment",
+    x = "Age Group",
+    y = "Number of Living Children"
+  ) +
+  theme_minimal()
+
+#senegal$num.preg
+ggplot(senegal, aes(x = age.adj, y = num.preg, fill = class)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of Number of Pregnancy by Age and Segment",
+    x = "Age Group",
+    y = "Number of Pregnancy"
+  ) +
+  theme_minimal()
+```
+
+#### 1.4.2. Take out age, fill by segment
+##### 1.4.2.1. Look at number of living children and FP relevance
+```{r, echo=TRUE}
+#This is number of children who are alive, not including number of children who died.
+```
+
+```{r}
+#table(senegal$fp.relevance, useNA = "always")
+senegal$fp.relevance <- as.factor(senegal$fp.relevance)
+
+ggplot(senegal, aes(x = fp.relevance, y = num.child.alive, fill = class)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Number of Living Children by FP Relevance and Class",
+       x = "FP Relevance", y = "Number of Living Children") +
+  theme_minimal()
+```
+
+##### 1.4.2.2. Look at number of pregnancy and FP relevance
+```{r}
+ggplot(senegal, aes(x = fp.relevance, y = num.preg, fill = class)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Number of Pregnancy by FP Relevance and Class",
+       x = "FP Relevance", y = "Numer of pregnancy") +
+  theme_minimal()
+```
+
+##### 1.4.2.3. Look at number of live birth and FP relevance
+```{r}
+#table(senegal$num.child.die, useNA = "always")
+senegal <- senegal %>% 
+  mutate(num.livebirth = num.child.die + num.child.alive)
+#table(senegal$num.livebirth, useNA = "always")
+```
+
+```{r}
+ggplot(senegal, aes(x = fp.relevance, y = num.livebirth, fill = class)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Number of Live Birth by FP Relevance and Class",
+       x = "FP Relevance", y = "Number of Live Birth") +
+  theme_minimal()
+```
+
+##### 1.4.2.4. Look at number of children died
+```{r}
+ggplot(senegal, aes(x = fp.relevance, y = num.child.die, fill = class)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Number of Children Died by FP Relevance and Class",
+       x = "FP Relevance", y = "Number of Children Died") +
+  theme_minimal()
+```
+
+##### 1.4.2.5. Variation across segments (number of living children)
+Recode based on box plot
+```{r, echo=TRUE}
+# Addictive, no interaction: Women with more children (2-4, 5+, compared to 0-1) report higher FP relevance, and this general pattern holds across all segments, with some segments reporting higher or lower baseline levels.
+# Interaction: Interactions are generally weak or non-significant
+# LRT compare: some segments may have slightly different patterns, but the general effect of "more children = higher FP relevance" holds across segments.
+```
+
+```{r}
+#table(senegal$num.child.alive.cat)
+#table(senegal$num.child.alive)
+senegal <- senegal %>% 
+  mutate(num.child.alive.cat1 = case_when(
+    num.child.alive < 2 ~ "0-1",
+    (num.child.alive >=2 & num.child.alive < 5) ~ "2-4",
+    TRUE ~ "5+"))
+```
+
+```{r}
+model4.0 <- glm(fp.relevance ~ num.child.alive.cat1 * class, 
+              data = senegal, 
+              family = binomial)
+summary(model4.0)
+
+# Compare models with/without interaction (likelihood ratio test - whether adding the interaction significantly improves model fit)
+  ##This is assuming the effect of age is the same across all classes (additive)
+model4.1 <- glm(fp.relevance ~ num.child.alive.cat1 + class, data = senegal, family = binomial)
+summary(model4.1)
+
+anova(model4.1, model4.0, test = "LRT")
+```
+
+#### 1.4.3. Without interaction with segment
+##### 1.4.3.1. Look at number of living children and FP relevance
+```{r, echo=TRUE}
+# Although the box plot shows no obvious difference in distribution, the visual inspection is not sufficient to confirm whether differences are statistically significant.
+```
+
+```{r}
+ggplot(senegal, aes(x = fp.relevance, y = num.child.alive)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Number of Living Children by FP Relevance", x = "Perceived FP Relevance", y = "Age at First Cohabitation")
+```
+```{r}
+model4.3.1. <- glm(fp.relevance ~ num.child.alive, data = senegal, family = binomial)
+summary(model4.3.1.)
+```
+```{r, echo=TRUE}
+#Look at number of children group: 0-1, 2-4, 5+
+#From chi-square: the largest contributors to the overall association are: 0-1 (less like), followed by 2-4 (> 2 or < -2). Women with 5+ show no notable deviation between "relevant" and "not relevant".
+
+#From glm: compare to women with 0-1 living children, with 2-4 or 5+ are both significantly more likely to consider FP relevant, with women with 2–4 have 28% higher odds and women with 5+ have 25% higher odds of perceiving FP as relevant.
+```
+
+```{r}
+#senegal$num.child.alive.cat1
+table <- table(senegal$num.child.alive.cat1, senegal$fp.relevance)
+chisq.test(table)
+
+#Values greater than +2 or less than -2 are typically considered notable contributors to the chi-square. Positive values: Observed > Expected. Negative values: Observed < Expected
+result <- chisq.test(table)
+result$stdres  
+```
+
+```{r}
+model4.3.1.2 <- glm(fp.relevance ~ num.child.alive.cat1, data = senegal, family = binomial)
+summary(model4.3.1.2)
+```
+
+```{r, echo=TRUE}
+#Also examed another way of categorizing the num.child (by IDM):
+  ## with 0 child, less likely to consider it as relevant; but then in this way of grouping, we cannot detect significance at other levels => suggest trying better grouping/cut-off (see above)
+```
+
+```{r}
+#senegal$num.child.alive.cat
+table1 <- table(senegal$num.child.alive.cat, senegal$fp.relevance)
+chisq.test(table1)
+
+result <- chisq.test(table1)
+result$stdres 
+```
+
+```{r, echo=FALSE}
+# Although it is not normally distributed, the logistic regression above is still valid, because it makes no assumption about the distribution of the independent variables (predictors). It models the log-odds of the binary outcomes as a linear combination of the predictors. What matters more is the correct functional form, absence of multicollinearity, and independence of observations.The distributional assumptions apply to residuals, not predictors.
+
+hist(senegal$num.child.alive, main = "Histogram of Number of Living Children", xlab = "Number of Living Children")
+
+qqnorm(senegal$num.child.alive)
+qqline(senegal$num.child.alive, col = "red")
+```
+
+#### 1.4.4. Agriculture or not
+```{r}
+#table(senegal$occupation.cat, useNA = "always")
+#table(senegal$partner.occupation.cat, useNA = "always")
+senegal <- senegal %>% 
+  mutate(work.agri = case_when(
+    (occupation.cat == "agricultural" | partner.occupation.cat == "agricultural") ~ 1,
+    is.na(occupation.cat) & is.na(partner.occupation.cat) ~ NA,
+    TRUE ~ 0))
+#table(senegal$work.agri, useNA = "always")
+```
+
+##### 1.4.4.1. FP relevance
+```{r, echo=TRUE}
+#woman or partner working in agriculture significantly lowers odds of perceiving FP as relevant.
+#exp(−0.3706)≈0.69, and this means agricultural workers have 31% lower odds (1 - 0.69 = 0.31) of perceiving FP as relevant compared to non-agricultural workers.
+```
+
+```{r}
+senegal$work.agri <- factor(senegal$work.agri, levels = c(0, 1), labels = c("Non-agriculture", "Agriculture"))
+
+model1.4.4 <- glm(fp.relevance ~ work.agri, data = senegal, family = binomial)
+summary(model1.4.4)
+```
+
+##### 1.4.4.2. Ideal number of children
+```{r}
+#table(senegal$ideal.n.child.moh.cat, useNA = "always")
+```
+
+```{r}
+table_agri_ideal <- table(senegal$work.agri, senegal$ideal.n.child.moh.cat)
+chisq.test(table_agri_ideal)
+
+result <- chisq.test(table_agri_ideal)
+result$stdres
+```
+```{r, echo=TRUE}
+#Large t-values imply very small p-values; plus small st
+#Working in agriculture is significantly associated with higher odds of reporting a higher ideal number of children (moving from "<3" to "3-5", or from "3-5" to "6+"). Specifically, the odds ratio is exp(0.955) ≈ 2.6, meaning: Women working in agriculture are about 2.6 times more likely to prefer larger family sizes compared to non-agricultural workers, holding other factors constant.
+```
+
+```{r}
+library(MASS)
+senegal$ideal.n.child.moh.cat <- ordered(senegal$ideal.n.child.moh.cat, levels = c("<3", "3-5", "6+"))
+ordinal_model <- polr(ideal.n.child.moh.cat ~ work.agri, data = senegal, method = "logistic")
+summary(ordinal_model)
+```
+
+## 2. Current use
+### 2.1. Current use by age brackets
+```{r}
+#class(senegal$fp.mod.now)
+senegal$fp.mod.now <- as.factor(senegal$fp.mod.now)
+```
+
+#### 2.1.1. Bar plots
+```{r}
+ggplot(senegal, aes(x = class, fill = factor(fp.mod.now))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ age.adj, ncol = 3) +
+  labs(title = "Current mCP by Segment and Age", x = "Segment", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+  scale_fill_discrete(name = "Using mCP", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+
+```
+
+```{r}
+ggplot(senegal, aes(x = age.adj, fill = factor(fp.mod.now))) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ class, ncol = 4) + 
+  labs(title = "Current mCP by Segment and Age", x = "Age", y = "Percentage") +
+  scale_y_continuous(labels = scales::percent) +  # Format y-axis as percentage
+  scale_fill_discrete(name = "Using mCP", labels = c("No", "Yes")) +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 6.5),
+        axis.text.y = element_text(angle = 0, hjust = 0, vjust = 0.5, size = 6.5),
+        strip.text = element_text(size = 9, face = "bold"),
+        legend.position = "top",
+        legend.title = element_text(size = 9),
+        legend.text = element_text(size = 8.5))
+
+```
+
+#### 2.1.2. Variation across segments
+```{r}
+model5.0 <- glm(fp.mod.now ~ age.adj * class, 
+              data = senegal, 
+              family = binomial)
+summary(model5.0)
+
+# Compare models with/without interaction (likelihood ratio test - whether adding the interaction significantly improves model fit)
+  ##This is assuming the effect of age is the same across all classes (additive)
+model5.1 <- glm(fp.mod.now ~ age.adj + class, data = senegal, family = binomial)
+summary(model5.1)
+
+anova(model5.1, model5.0, test = "LRT")
+```
+
+#### 2.1.3. Predict probability
+```{r, echo=TRUE}
+# To observe age influence, look for the peaks or drops with small CI bars:
+  ##U1: turning from 15-19 to 20-24, continue increase when moving to 25-29;
+  ##U2.1: experiencing a drop when tunring from 20-24 to 25-29
+```
+
+```{r}
+new_data <- expand.grid(
+  age.adj = levels(senegal$age.adj),
+  class = levels(senegal$class))
+
+# Add predicted probabilities and CIs
+pred <- predict(model5.0, newdata = new_data, type = "link", se.fit = TRUE)
+new_data$fit <- pred$fit
+new_data$se.fit <- pred$se.fit
+new_data$predicted_prob <- plogis(new_data$fit)
+new_data$ci_lower <- plogis(new_data$fit - 1.96 * new_data$se.fit)
+new_data$ci_upper <- plogis(new_data$fit + 1.96 * new_data$se.fit)
+
+ggplot(new_data, aes(x = age.adj, y = predicted_prob, color = class, group = class)) +
+  geom_line(position = position_dodge(width = 0.5)) +
+  geom_point(position = position_dodge(width = 0.5)) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.2, position = position_dodge(width = 0.5)) +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Predicted Probability of Current mCP Use by Age and Segment",
+    x = "Age",
+    y = "Predicted Probability of mCP Use",
+    color = "Segment"
+  ) +
+  theme_minimal()
+```
+
+#### 2.1.4. Number of living children and use
+```{r}
+model2.1.4.1 <- glm(fp.mod.now ~ num.child.alive, data = senegal, family = binomial)
+summary(model2.1.4.1)
+```
+
+```{r, echo=TRUE}
+#Chi-square: Overall test of association, showing which cells drive the association.
+  #The strongest deviation from independence comes from the 0–1 and 5+ groups, not really from 2–4.
+#Logistic regression: Focused comparison to the reference group, showing significance and effect size.
+  #After fitting the data, 2–4 is significantly more likely than 0–1 to report FP use.
+  #It estimates 49% higher odds compared to 0–1, with tight confidence due to the model structure.
+```
+
+```{r}
+model2.1.4.2 <- glm(fp.mod.now ~ num.child.alive.cat1, data = senegal, family = binomial)
+summary(model2.1.4.2)
+```
+
+```{r}
+table <- table(senegal$num.child.alive.cat1, senegal$fp.mod.now)
+chisq.test(table)
+result <- chisq.test(table)
+result$stdres 
+```
+
+## 3. Additional analysis
+### 3.1.  Overarching age plot with key variables
+```{r}
+#table(senegal$v012)
+senegal <- senegal %>% 
+  mutate(age.adj1 = case_when(
+    v012 < 18 ~ "15-17",
+    (v012 > 17 & v012 < 20) ~ "18-19",
+    (v012 > 19 & v012 < 25) ~ "20-24",
+    (v012 > 24 & v012 < 30) ~ "25-29",
+    (v012 > 29 & v012 < 35) ~ "30-34",
+    (v012 > 34 & v012 < 41) ~ "35-40",
+    v012 > 40 ~ "41-49"))
+table(senegal$age.adj1, useNA = "always")
+table(senegal$age.adj1, senegal$class)
+```
+
+#### 3.1.1. Age at 1st marrige
+```{r, echo=TRUE}
+# Because of the sampling inclusion criteria, all of them have married or cohabitated with partner. In table below, the column ave.age.1stcohab gives average age at 1st marriage or cohabitation by given group, weighted.
+```
+
+```{r}
+#table(senegal$v511, useNA = "always") #not using age.1stcohab because there is something coding error - it still has 5 "never in union"
+# class(senegal$v511)
+# table(senegal$class)
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+table(senegal$marital.cat, useNA = "always")
+```
+
+Overall weighted average (19.1)
+```{r}
+svymean(~v511, design = senegal.des, na.rm = TRUE)
+```
+
+Weighted average by class
+```{r}
+avg_marriage <- svyby(~v511, ~class, design = senegal.des, svymean, na.rm = TRUE)
+colnames(avg_marriage)[2] <- "ave.age.1stcohab"
+avg_marriage
+```
+
+Weighted average by class and age bracket 
+```{r}
+# summary_table <- senegal %>%
+#   group_by(class, age.adj1) %>%
+#   summarise(
+#     n = n(),
+#     avg_marriage_age = round(mean(v511, na.rm = TRUE), 1),
+#     .groups = "drop") %>%
+#   arrange(class, age.adj1)
+# summary_table
+avg_marriage_age <- svyby(~v511, ~interaction(class, age.adj1, drop = TRUE), design = senegal.des,
+ svymean, na.rm = TRUE)
+colnames(avg_marriage_age)[1] <- "class-age"
+colnames(avg_marriage_age)[2] <- "ave.age.1stcohab"
+avg_marriage_age
+```
+
+#### 3.1.2. (Average) Number of (living) children at this age bracket
+
+Overall weighted average (3.4)
+```{r}
+svymean(~num.child.alive, design = senegal.des, na.rm = TRUE)
+```
+
+Weighted average by class
+```{r}
+avg_child.live <- svyby(~num.child.alive, ~class, design = senegal.des, svymean, na.rm = TRUE)
+colnames(avg_child.live)[2] <- "ave.child.living"
+avg_child.live
+```
+
+Weighted average by class and age bracket 
+```{r, echo=TRUE}
+# You won't see a row below for U1-S.15-17, because this group does not have living children.
+```
+
+```{r}
+avg_child.live_age <- svyby(~num.child.alive, ~interaction(class, age.adj1, drop = TRUE), design = senegal.des,
+ svymean, na.rm = TRUE)
+
+colnames(avg_child.live_age)[1] <- "class-age"
+colnames(avg_child.live_age)[2] <- "ave.child.living"
+avg_child.live_age
+```
+
+### 3.1.3. What % are using (modern) FP at this age bracket 
+```{r}
+#table(senegal$fp.mod.now, useNA = "always")
+svymean(~fp.mod.now, design = senegal.des, na.rm = TRUE)
+```
+
+
+```{r}
+fp.class <- svyby(~fp.mod.now, ~class, design = senegal.des, svymean, vartype = "se")
+colnames(fp.class)[3] <- "fp.use.percent"
+fp.class$fp.use.percent <- round(100 * fp.class$fp.use.percent, 1)
+
+fp.class
+```
+
+```{r}
+fp.class.age <- svyby(
+  ~fp.mod.now, 
+  ~interaction(class, age.adj1, drop = TRUE), 
+  design = senegal.des, 
+  svymean, 
+  na.rm = TRUE,
+  vartype = "se")
+
+colnames(fp.class.age)[1] <- "class-age"
+colnames(fp.class.age)[3] <- "fp.use.percent"
+fp.class.age$fp.use.percent <- round(100 * fp.class.age$fp.use.percent, 1)
+
+fp.class.age
+```
+
+### 3.2. Childcare support available to women in the HH
+```{r}
+#Childcare support available to women in the household by segment
+#We can try No of child care providers in the household (most likely we don't have this)
+#so no of adults or no of adult women and men in the household will be useful.
+#We might also use this to see which segments have higher likelihood of MIL’s being present
+```
+
+#### 3.2.1. Number of adult (>= 15) in HH
+```{r, echo=TRUE}
+# In rural, more vulnerable, few number of adults.
+```
+
+```{r}
+#table(senegal$num.15up, useNA = "always")
+medians <- senegal %>%
+  group_by(class) %>%
+  summarise(median_val = median(num.15up, na.rm = TRUE))
+
+ggplot(senegal, aes(x = class, y = num.15up, fill = class)) +
+  geom_boxplot() +
+  geom_text(data = medians, aes(x = class, y = median_val, label = round(median_val, 1)),
+            vjust = -0.5, size = 3.5, color = "black") +
+  labs(title = "Number of adults in HH by Segment", x = "Segment", y = "Number of Adults (>=15 yrs)") +
+  theme_minimal()
+
+ggplot(senegal, aes(x = age.adj, y = num.15up, fill = class)) +
+  geom_boxplot() +
+  labs(title = "Number of adults in HH by Segment", x = "Age Group", y = "Number of Adults (>=15 yrs)") +
+  theme_minimal()
+```
+
+#### 3.2.2. ration of U5 children / women 15-49 in HH
+```{r, echo=TRUE}
+# In both rural and urban, the more vulnerable, the higher ratio - (shared) burden of taking care of small kids.
+```
+
+```{r}
+#table(senegal$hh.kidwom.rat, useNA = "always")
+```
+
+```{r}
+medians <- senegal %>%
+  group_by(class) %>%
+  summarise(median_val = median(hh.kidwom.rat, na.rm = TRUE))
+
+ggplot(senegal, aes(x = class, y = hh.kidwom.rat, fill = class)) +
+  geom_boxplot() +
+  geom_text(data = medians, aes(x = class, y = median_val, label = round(median_val, 1)),
+            vjust = -0.5, size = 3.5, color = "black") +
+  labs(title = "U5/Women (15-49) Ratio by Segment", x = "Segment", y = "U5/Women (15-49) Ratio") +
+  theme_minimal()
+```
+
+#### 3.2.3. Number of women 15-49 (Potential caregivers)
+```{r}
+#hv010: Total number of eligible women indicates the number of women found eligible for the individual survey in the household schedule.
+#hv014: Number of children resident in the household and aged 5 and under.
+medians <- senegal %>%
+  group_by(class) %>%
+  summarise(median_val = median(hv010, na.rm = TRUE))
+
+ggplot(senegal, aes(x = class, y = hv010, fill = class)) +
+  geom_boxplot() +
+  geom_text(data = medians, aes(x = class, y = median_val, label = round(median_val, 1)),
+            vjust = -0.5, size = 3.5, color = "black") +
+  labs(title = "Number of women aged 15-49 in HH by Segment", x = "Segment", y = "Number of Women 15-49 yrs") +
+  theme_minimal()
+```
+
+##### 3.2.3.1. About outliers
+```{r}
+upper_limit <- quantile(senegal$hv010, 0.95, na.rm = TRUE)
+
+ggplot(senegal, aes(x = class, y = hv010, fill = class)) +
+  geom_boxplot() +
+  geom_text(data = medians, aes(x = class, y = median_val, label = round(median_val, 1)),
+            vjust = -0.5, size = 3.5, color = "black") +
+  coord_cartesian(ylim = c(0, upper_limit)) +  # Limit display range
+  labs(title = "Number of Women Aged 15-49 in HH by Segment", 
+       subtitle = paste0("Y-axis truncated at ", round(upper_limit, 1), " (95th percentile)"),
+       x = "Segment", y = "Number of Women 15-49 yrs",
+       caption = "Outliers above 95th percentile not shown but included in analysis") +
+  theme_minimal()
+
+outlier_info <- senegal %>%
+  group_by(class) %>%
+  summarise(
+    n_outliers = sum(hv010 > upper_limit, na.rm = TRUE),
+    max_val = max(hv010, na.rm = TRUE)
+  ) %>%
+  filter(n_outliers > 0)
+
+print("Outliers by segment:")
+print(outlier_info)
+```
+
+### 3.3. Ideal no of children (recategorize)
+```{r}
+# table(senegal$v613)
+# table(senegal$v614)
+
+sen.ideal <- senegal %>% 
+  filter(v613 < 96)
+
+medians <- sen.ideal %>%
+  group_by(class) %>%
+  summarise(median_val = median(v613, na.rm = TRUE))
+
+ggplot(sen.ideal, aes(x = class, y = v613, fill = class)) +
+  geom_boxplot() +
+  geom_text(data = medians, aes(x = class, y = median_val, label = round(median_val, 1)),
+            vjust = -0.5, size = 3.5, color = "black") +
+  labs(title = "Ideal Number of Children by Segment", x = "Segment", y = "Ideal Number of Children") +
+  theme_minimal()
+```
+
+```{r}
+senegal <- senegal %>% 
+  mutate(ideal.n.child.cat.new = case_when(
+    v613 < 5 ~ "0-4",
+    (v613 >=5 & v613 <7) ~ "5-6",
+    v613 == 96 ~ "Don't know/God's will",
+    TRUE ~ "7+"))
+senegal$ideal.n.child.cat.new <- factor(senegal$ideal.n.child.cat.new, 
+                                         levels = c("0-4", "5-6", "7+", "Don't know/God's will"))
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+```
+
+```{r}
+senegal.idea <- svytable(~class + ideal.n.child.cat.new, design = senegal.des)
+senegal.idea <- as.data.frame(senegal.idea)
+
+senegal.idea <- senegal.idea %>% 
+  group_by(class) %>%
+  mutate(perc = ((Freq/sum(Freq))*100)) %>%
+  ungroup()
+ 
+senegal.idea$ideal.n.child.cat.new <- factor(senegal.idea$ideal.n.child.cat.new, levels = c("0-4", "5-6", "7+", "Don't know/God's will"), labels = c("0-4", "5-6", "7+", "Don't know/\nGod's will"))
+
+ggplot(senegal.idea, aes(x = class, y = perc, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
+  geom_text(aes(label = paste0(round(perc, 0), "%")), position = position_stack(vjust = 0.5), size = 2.5) +
+  labs(x = "Segment", y = "Percentage", fill = "Ideal number", title = "Ideal Number of Children by Segment") +
+  scale_fill_manual(values = c("#03859b","#9cc2f4","#DC143C","#b590bf")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5),
+        legend.title = element_text(size = 9), 
+        legend.text = element_text(size = 7))
+
+senegal.idea
+rm(senegal.idea)
+```
+
+### 3.4. HH in agri and ideal number of children
+#### 3.4.1. In agri work or not
+```{r}
+table_agri_ideal <- table(senegal$work.agri, senegal$ideal.n.child.cat.new)
+chisq.test(table_agri_ideal)
+
+result <- chisq.test(table_agri_ideal)
+result$stdres
+```
+
+```{r}
+#table(senegal$work.agri, useNA = "always")
+# Create proportional stacked bar chart
+# table(senegal$ideal.n.child.cat.new)
+prop_table <- senegal %>%
+  filter(!is.na(work.agri) & !is.na(ideal.n.child.cat.new)) %>%
+  group_by(work.agri, ideal.n.child.cat.new) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(work.agri) %>%
+  mutate(
+    total = sum(count),
+    proportion = count / total,
+    percentage = round(proportion * 100, 1))
+
+ggplot(prop_table, aes(x = work.agri, y = proportion, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "white", fontface = "bold") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("0-4" = "#03859b", "5-6" = "#9cc2f4", "7+" = "#DC143C", "Don't know/God's will" ="#b590bf")) +
+  labs(title = "Ideal Number of Children by Agricultural Work Status",
+       subtitle = "Agricultural households prefer larger families",
+       x = "Household Work Type", 
+       y = "Proportion",
+       fill = "Ideal # Children",
+       caption = "χ² = 377, p < 0.0001") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(size = 11))
+```
+
+```{r}
+ggplot(prop_table, aes(x = ideal.n.child.cat.new, y = proportion, fill = work.agri)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.5, size = 3.5) +
+  scale_y_continuous(labels = scales::percent, expand = expansion(mult = c(0, 0.1))) +
+  labs(title = "Ideal Number of Children by Agricultural Work Status",
+       x = "Ideal Number of Children", 
+       y = "Proportion",
+       fill = "Work Type") +
+  theme_minimal()
+```
+
+```{r, echo=TRUE}
+# All categories show significant differences (all residuals > 3), meaning agricultural vs non-agricultural households have fundamentally different family size preferences across the entire spectrum - including "don't know/God's will - Agricultural households more likely to give this response. The pattern shows a clear shift toward larger families and traditional/religious attitudes in agricultural households
+```
+
+```{r}
+# Add standardized residuals as annotations
+residuals_df <- data.frame(
+  ideal.n.child.cat = c("0-4", "5-6", "7+", "Don't know/God's will"),
+  work.agri = rep("Agriculture", 4),
+  std_residual = c(-15.666, -5.026, 13.506, 5.819),
+  y_position = c(0.07, 0.40, 0.77, 0.91),
+  significance = c("***", "***", "***", "***"))
+
+# Your main plot + residual annotations
+ggplot(prop_table, aes(x = work.agri, y = proportion, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "white", fontface = "bold") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("0-4" = "#03859b", "5-6" = "#9cc2f4", "7+" = "#DC143C", "Don't know/God's will" ="#b590bf")) +
+  labs(title = "Ideal Number of Children by Agricultural Work Status",
+       subtitle = "Agricultural households prefer larger families",
+       x = "Household Work Type", 
+       y = "Proportion",
+       fill = "Ideal # Children",
+       caption = "χ² = 377, p < 0.0001") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom",
+        axis.text.x = element_text(size = 11)) +
+  geom_text(data = residuals_df, 
+            aes(x = work.agri, y = y_position, label = significance),
+            inherit.aes = FALSE, size = 4, color = "red") +
+  labs(caption = "χ² = 377, p < 0.001\n*** = |standardized residual| > 3")
+```
+
+#### 3.4.2. Plus rural and urban [Use the plot here]
+```{r, echo=TRUE}
+# Interpretation of the following test:
+
+# Agriculture Effect Persists After Adding Rural/Urban. The agriculture coefficients remain significant and substantial in model2, showing the effect persists after controlling for rural/urban residence.
+# No Significant Interaction (p = 0.6389 in the anova test). Unlike polygamy (see 3.5.2), the agriculture effect does NOT differ significantly between rural and urban areas. The interaction is not significant (p = 0.6389 > 0.05). [Earlier we had a hypothesis that, since there are much fewer HH working in agri in urban, we wondered for urban HH, if they are in agri - woman or partner or both work in agri - would show even stronger significant effect on ideal number of children than rural HH. The test here tell us no]
+# Model 2 - preferred model: ideal.n.child.cat.new ~ work.agri + v025
+  # Compare model 1 and model 2, model 2 coefficients are smaller, this suggests part of the agriculture effect in Model 1 was actually due to rural/urban differences. We will then use model 2 for interpretation and visual because it gives the more precise, independent effect of agri work after accounting for the fact that agriculture is more common in rural areas where fertility preferences are generally higher.
+  # By getting the odd ratios of model 2 (see below), we know that: Agriculture workers compared to non-agriculture workers have: (reference cat is 0-4 children)
+  ## 5-6 children: OR = exp(0.4540) = 1.57 (57% higher odds)
+  ## 7+ children: OR = exp(0.8955) = 2.45 (145% higher odds)
+  ## Don't know/God's will: OR = exp(0.8358) = 2.31 (131% higher odds)
+
+
+## Overall Interpretation:
+  ## Strong agriculture effect: Agriculture HHs have much higher odds of wanting many children or expressing uncertainty (don't know, God's will) about family size.
+  ## Effect is consistent: Unlike polygamy, the agriculture effect is similar in both rural and urban areas - no significant interaction
+  ## Rural areas want more children overall: The v025rural coefficients show rural residents generally prefer larger families
+
+  # We can say:
+  ## HH being in agriculture work strongly predicts higher fertility preferences, and this relationship is consistent across rural and urban settings. There's no need to report separate effects by location since the interaction isn't significant.
+  ## This suggests that HH being in agri work itself (e.g., what we discussed earlier about labor needs, seeing children as labor/asset, economic factors, or cultural values) drives higher fertility preferences regardless of rural/urban context.
+  ## This is like a simpler story than polygamy - HH in agriculture = higher fertility preferences
+```
+
+```{r}
+model1 <- multinom(ideal.n.child.cat.new ~ work.agri, data = senegal, weights = wt)
+model2 <- multinom(ideal.n.child.cat.new ~ work.agri + v025, data = senegal, weights = wt)
+model3 <- multinom(ideal.n.child.cat.new ~ work.agri * v025, data = senegal, weights = wt)
+```
+
+```{r, echo=TRUE}
+# Look at results below: the p-value is 0.6389 (> 0.05), which means the interaction between HH in agri and rural/urban is not statistically significant. 
+```
+
+```{r, echo=TRUE}
+summary(model1)
+summary(model2)
+summary(model3)
+#compare model 2 and 3: does agri effect differ by rural/urban? 
+anova(model2, model3)
+```
+```{r, echo=TRUE}
+# Odds Ratios for Agriculture vs Non-Agriculture:
+exp(coef(model2))
+```
+
+```{r}
+# Get coefficients and standard errors
+coefs <- coef(model2)
+std_errors <- summary(model2)$standard.errors
+
+# Calculate z-values
+z_values <- coefs / std_errors
+
+# Calculate p-values (two-tailed test)
+p_values <- 2 * (1 - pnorm(abs(z_values)))
+
+# Display results
+print("Z-values:")
+print(round(z_values, 3))
+print("P-values:")
+print(round(p_values, 4))
+
+# more specifically for agriculture effects:
+agri_z <- coefs[, "work.agriAgriculture"] / std_errors[, "work.agriAgriculture"]
+agri_p <- 2 * (1 - pnorm(abs(agri_z)))
+
+print("Agriculture coefficients significance:")
+data.frame(
+  Category = rownames(coefs),
+  Coefficient = coefs[, "work.agriAgriculture"],
+  Std_Error = std_errors[, "work.agriAgriculture"],
+  Z_value = agri_z,
+  P_value = agri_p,
+  Significant = agri_p < 0.05)
+```
+
+```{r}
+weighted_props <- senegal %>%
+  filter(!is.na(work.agri) & !is.na(ideal.n.child.cat.new)) %>%
+  group_by(work.agri, ideal.n.child.cat.new) %>%
+  summarise(weight_sum = sum(wt), .groups = 'drop') %>%
+  group_by(work.agri) %>%
+  mutate(
+    total_weight = sum(weight_sum),
+    proportion = weight_sum / total_weight,
+    percentage = round(proportion * 100, 1))
+
+ggplot(weighted_props, aes(x = work.agri, y = proportion, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.6) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "white", fontface = "bold") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("0-4" = "#03859b", "5-6" = "#9cc2f4", "7+" = "#DC143C", "Don't know/God's will" ="#b590bf")) +
+  labs(title = "Ideal Number of Children by Househodl Agricultural Work Status",
+       x = "Household Work Type", 
+       y = "Proportion",
+       fill = "Ideal # Children",
+       caption = "Analysis based on survey-weighted multinomial regression\nAll agriculture effects significant (p < 0.001)") +
+  theme_minimal() +
+  theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+        legend.position = "bottom",
+        axis.text.x = element_text(size = 11))
+```
+
+```{r}
+ggplot(weighted_props, aes(x = ideal.n.child.cat.new, y = proportion, fill = work.agri)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_dodge(width = 0.8), 
+            vjust = -0.5, size = 3.5, fontface = "bold") +
+  scale_y_continuous(labels = scales::percent, 
+                     expand = expansion(mult = c(0, 0.1))) +
+  labs(title = "Ideal Number of Children by Househodl Agricultural Work Status",
+       subtitle = "Agricultural households consistently prefer larger families across all categories",
+       x = "Ideal Number of Children", 
+       y = "Proportion",
+       caption = "Survey-weighted analysis\nAgriculture effects: 5-6 children (OR=1.57), 7+ children (OR=2.45), Don't know (OR=2.31)") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(size = 11, hjust = 0.5),
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 11),
+    panel.grid.major.x = element_blank())
+weighted_props
+```
+
+
+### 3.5.Polygamous (exclud not partnered)
+#### 3.5.1. Polygamy and monogamy
+```{r}
+# Correlation of polygamous marriages to higher ideal no of children, 
+# polygamous marriages to rural and urban, 
+# polygamous marriages to vulnerability levels (most and more together, least and less together) in rural and urban
+```
+
+```{r}
+sen.poly <- senegal %>% 
+  filter(polygamy != "not partnered")
+
+table.poly <- table(sen.poly$polygamy, sen.poly$ideal.n.child.cat.new)
+chisq.test(table.poly)
+
+result <- chisq.test(table.poly)
+result$stdres
+```
+
+```{r, echo=TRUE}
+# Monogamous (0): More likely to want 0-4 (+5.506) and 5-6 (+4.191) children
+# Polygamous (1): More likely to want 7+ (+4.452) children and give "Don't know/God's will" (+5.379) responses
+# Polygamous marriages are associated with preferences for larger families and more traditional/religious responses about family planning, similar to but less pronounced than the agriculture effect (χ² = 74 vs 377).
+```
+
+```{r}
+prop_table_poly <- sen.poly %>%
+  filter(!is.na(polygamy) & !is.na(ideal.n.child.cat.new)) %>%
+  group_by(polygamy, ideal.n.child.cat.new) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(polygamy) %>%
+  mutate(
+    total = sum(count),
+    proportion = count / total,
+    percentage = round(proportion * 100, 1)) %>%
+  mutate(polygamy_label = ifelse(polygamy == 0, "Monogamous", "Polygamous"))
+
+residuals_df_poly <- data.frame(
+  ideal.n.child.cat.new = c("0-4", "5-6", "7+", "Don't know/God's will"),
+  polygamy_label = c("Polygamous", "Polygamous", "Polygamous", "Polygamous"),
+  y_position = c(0.07, 0.40, 0.77, 0.91),
+  significance = c("***", "***", "***", "***"))
+
+ggplot(prop_table_poly, aes(x = polygamy_label, y = proportion, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3.5, color = "white", fontface = "bold") +
+  geom_text(data = residuals_df_poly, 
+            aes(x = polygamy_label, y = y_position, label = significance),
+            inherit.aes = FALSE, size = 3, color = "red", fontface = "bold") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("0-4" = "#03859b", "5-6" = "#9cc2f4", "7+" = "#DC143C", "Don't know/God's will" ="#b590bf")) +
+  labs(title = "Ideal Number of Children by Marriage Type",
+       subtitle = "Polygamous households prefer larger families",
+       x = "Marriage Type", 
+       y = "Proportion",
+       fill = "Ideal # Children",
+       caption = "χ² = 74, p < 0.001\n*** = |standardized residual| > 3") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 11),
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 11))
+```
+
+#### 3.5.2. Plus rural and urban
+```{r}
+# class(sen.poly$ideal.n.child.cat.new)
+sen.poly.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+
+model1 <- multinom(ideal.n.child.cat.new ~ polygamy, data = sen.poly, weights = wt)
+model2 <- multinom(ideal.n.child.cat.new ~ polygamy + v025, data = sen.poly, weights = wt)
+model3 <- multinom(ideal.n.child.cat.new ~ polygamy * v025, data = sen.poly, weights = wt)
+```
+
+```{r, echo=TRUE}
+# Look at results below: the p-value is 0.01519 (< 0.05), which means the interaction between polygamy and rural/urban is statistically significant. This means that the effect of polygamy on ideal number of children differs between rural and urban areas. The polygamy effect is not the same across rural/urban settings.
+```
+
+```{r, echo=TRUE}
+#compare model 2 and 3: does polygamy effect differ by rural/urban?
+anova(model2, model3)
+```
+
+```{r, echo=TRUE}
+# Take further steps and look at the results below, the multinomial regression results show how polygamy affects different fertility preference categories compared to the reference category (0-4 children). Here we also get the odd ratios to ease the interpretation;
+
+# Model 2 (Main Effects): polygamy + v025; odds ratios:
+  ## 5-6 children: OR = 1.099 for polygamy
+  ## 7+ children: OR = 1.445 for polygamy
+  ## Don't know/God's will: OR = 1.660 for polygamy
+
+# Model 3 (With Interaction): polygamy * v025; this interaction model shows different polygamy effects by rural/urban:
+# For URBAN women (reference), being in polygamy:
+  ## 5-6 children: OR = 0.9895 (slightly lower odds)
+  ## 7+ children: OR = 1.8500 (85% higher odds)
+  ## Don't know/God's will: OR = 1.6941 (69% higher odds)
+
+# For RURAL women (urban + interaction):
+  ## 5-6 children: OR = 0.9895 × 1.1509 = 1.139 (14% higher odds)
+  ## 7+ children: OR = 1.8500 × 0.7146 = 1.322 (32% higher odds)
+  ## Don't know/God's will: OR = 1.6941 × 0.9558 = 1.620 (62% higher odds)
+
+# Overall:
+  # Polygamy effect persists after controlling for rural/urban ✓
+  # Urban areas: Polygamous women have much higher odds of wanting 7+ children (85% higher) and expressing uncertainty (69% higher)
+  # Rural areas: Polygamous women have moderately higher odds across all categories, but the effect is somewhat smaller for 7+ children
+  # The interaction is significant because the polygamy effect on wanting 7+ children is stronger in urban areas than rural areas 
+  # Conclusion: Yes, polygamy's influence on ideal number of children still stands after adding rural/urban, but the effect varies by setting. In urban areas, polygamy has a particularly strong association with wanting many children, while in rural areas the effects are more moderate but still present across all categories. This is probably because, without or without polygamy, rural already wants more children than urban; (see the association with agri work). We can also see the different between rural and urban baseline below in the heatmap that overall urban wants few chidlren than rural.
+```
+
+```{r}
+# Look at the detailed results
+summary(model2)  # Main effects model
+summary(model3)  # Interaction model
+
+# Get odds ratios 
+exp(coef(model2))
+exp(coef(model3))
+
+library(emmeans)
+emmeans(model3, ~ polygamy | v025)  # Separate polygamy effects for rural vs urban
+```
+
+```{r}
+prop_table_poly_location <- sen.poly %>%
+  filter(!is.na(polygamy) & !is.na(ideal.n.child.cat.new) & !is.na(v025)) %>%
+  group_by(v025, polygamy, ideal.n.child.cat.new) %>%
+  summarise(count = n(), .groups = 'drop') %>%
+  group_by(v025, polygamy) %>%
+  mutate(
+    total = sum(count),
+    proportion = count / total,
+    percentage = round(proportion * 100, 1)
+  ) %>%
+  mutate(
+    polygamy_label = ifelse(polygamy == 0, "Monogamous", "Polygamous"),
+    location_label = str_to_title(v025))
+
+# Create faceted plot
+ggplot(prop_table_poly_location, aes(x = polygamy_label, y = proportion, fill = ideal.n.child.cat.new)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white", fontface = "bold") +
+  facet_wrap(~location_label) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("0-4" = "#03859b", "5-6" = "#9cc2f4", "7+" = "#DC143C", "Don't know/God's will" ="#b590bf")) +
+  labs(title = "Ideal Number of Children by Marriage Type and Location",
+       subtitle = "Comparing rural vs urban differences in polygamy effects",
+       x = "Marriage Type", 
+       y = "Proportion",
+       fill = "Ideal # Children") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    strip.text = element_text(size = 12, face = "bold"),
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 0, hjust = 0.5))
+```
+
+```{r}
+# ggplot(prop_table_poly_location, aes(x = polygamy_label, y = ideal.n.child.cat.new, 
+#                                     fill = percentage)) +
+#   geom_tile() +
+#   geom_text(aes(label = paste0(percentage, "%")), color = "white") +
+#   facet_wrap(~location_label) +
+#   scale_fill_gradient(low = "lightblue", high = "darkred") +
+#   labs(title = "Family Size Preferences: Rural vs Urban × Marriage Type")
+
+ggplot(prop_table_poly_location, aes(x = polygamy_label, y = ideal.n.child.cat.new, 
+                                    fill = percentage)) +
+  geom_tile() +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            color = ifelse(prop_table_poly_location$percentage > 25, "white", "black"),
+            size = 3.5) +
+  facet_wrap(~location_label) +
+  scale_fill_distiller(type = "seq", palette = "Reds", direction = 1, name = "Percentage") +
+  labs(title = "Family Size Preferences: Rural vs Urban × Marriage Type",
+       x = "Marriage Type",
+       y = "Ideal Number of Children") +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold"))
+```
+
+### 3.6. Health Utilization
+```{r, echo=TRUE}
+# Here we are exploring behaviors on women's Antenatal–Intrapartum–Postnatal Continuum Journey:
+  ## ANC: anc.any (at least 1 ANC), anc.4plus (4 or more ANC visits)
+  ## Delivery: fac.deli: this is recoded; for those who said "other" they are NOT counted as facility delivery.
+  ## PNC for woman, PNC for baby: wom.hlthck1, baby.hlthck1
+  ## Breastfeeding: breastfed.last, breastfed.excl
+  ## Vaccination: dpt.full.yn.y (any child fully vacinated with DPT)
+  ## mCP current: fp.mod.now
+```
+
+```{r}
+#senegal$anc.less4
+#senegal$wom.nohlthck
+senegal$anc.4plus <- ifelse(senegal$anc.less4 == 0, 1, 0)
+
+anc.mean <- as.integer(mean(senegal$m14_1, na.rm=TRUE))
+senegal$anc.num <- ifelse(senegal$m14_1 == 98, anc.mean, senegal$m14_1)
+senegal$anc.any <- ifelse(senegal$anc.num >0, 1, 0)
+
+anc.1st.mean <- as.integer(mean(senegal$m13_1, na.rm=TRUE))
+senegal$anc.1stvisit <- ifelse(senegal$m13_1 == 98, anc.1st.mean, senegal$m13_1)
+senegal$anc.1stvisit[senegal$m14_1 == 0] <- 10
+senegal$anc.1sttri <- ifelse(senegal$anc.1stvisit < 4, 1, 0)
+
+# table(senegal$anc.4plus, useNA = "always")
+# table(senegal$anc.any, useNA = "always")
+# table(senegal$anc.1sttri, useNA = "always")
+
+#table(senegal$fac.deli, useNA = "always")
+
+senegal$wom.hlthck1 <- ifelse(senegal$wom.nohlthck==0, 1, 0)
+senegal$baby.hlthck1 <- ifelse(senegal$baby.nohlthck==0, 1, 0)
+# table(senegal$wom.hlthck1, useNA = "always")
+# table(senegal$baby.hlthck1, useNA = "always")
+# table(senegal$breastfed.excl, useNA = "always")
+# table(senegal$dpt.full.yn.y, useNA = "always")
+# table(senegal$fp.mod.now, useNA = "always")
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+```
+
+#### 3.6.1. Prevelance by segment
+```{r}
+# List of variables
+senegal <- senegal %>% 
+  mutate(fp.mod.now = ifelse(nofp.mod.now == 0, 1, 0))
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+vars <- c("anc.any", "anc.4plus", "fac.deli", "wom.hlthck1", "baby.hlthck1", "breastfed.excl", "dpt.full.yn.y", "fp.mod.now")
+
+get_prop_by_class <- function(var) {
+  df <- svyby(
+    formula = as.formula(paste0("~", var)),
+    by = ~class,
+    design = senegal.des,
+    FUN = svymean,
+    na.rm = TRUE
+  )
+  df <- df %>%
+    dplyr::select(class, all_of(var)) %>%
+    rename(prop = all_of(var)) %>%
+    mutate(variable = var)
+  return(df)
+}
+
+results_list <- lapply(vars, get_prop_by_class)
+results_df <- bind_rows(results_list)
+
+results_df$variable <- factor(results_df$variable,
+  levels = vars,
+  labels = c("1+ ANC", "4+ ANC", "Facility Delivery", "PNC Woman", "PNC Baby", "Exclusive\nbreastfeeding", "Any Child\nFull-DPT", "Current mCP"))
+
+ggplot(results_df, aes(x = variable, y = prop * 100, fill = variable)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(prop * 100, 0)), vjust = -0.5, size = 3) + 
+  facet_wrap(~class, nrow = 2) +
+  scale_y_continuous(limits = c(0, 110)) +  
+  labs(y = "Percentage", x = NULL, title = "Antenatal–Intrapartum–Postnatal Continuum Journey by Segment (Senegal 2019)", caption = "Weighted proportions based on 2019DHS Segmentation") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 7, vjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        panel.grid.major = element_blank(),
+        panel.background = element_blank())
+```
+
+#### 3.6.2. Prevelance by state
+```{r}
+vars <- c("anc.any", "anc.4plus", "fac.deli", "wom.hlthck1", "baby.hlthck1", "breastfed.excl", "dpt.full.yn.y", "fp.mod.now")
+
+get_prop_by_class <- function(var) {
+  df <- svyby(
+    formula = as.formula(paste0("~", var)),
+    by = ~v024,
+    design = senegal.des,
+    FUN = svymean,
+    na.rm = TRUE
+  )
+  df <- df %>%
+    dplyr::select(v024, all_of(var)) %>%
+    rename(prop = all_of(var)) %>%
+    mutate(variable = var)
+  return(df)
+}
+
+results_list <- lapply(vars, get_prop_by_class)
+results_df <- bind_rows(results_list)
+
+results_df$variable <- factor(results_df$variable,
+  levels = vars,
+  labels = c("1+ ANC", "4+ ANC", "Facility Delivery", "PNC Woman", "PNC Baby", "Excl. breastfeeding", "Any Child Full-DPT", "Current mCP"))
+
+results_df <- results_df %>%
+  mutate(v024 = str_to_title(v024))
+results_df <- results_df %>%
+  mutate(v024 = ifelse(v024 == "Thi?S", "Thiès", v024))
+
+ggplot(results_df, aes(x = variable, y = prop * 100, fill = variable)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(prop * 100, 0)), vjust = -0.5, size = 2.3) + 
+  facet_wrap(~v024, nrow = 2) +
+  scale_y_continuous(limits = c(0, 110)) +  
+  labs(y = "Percentage", x = NULL, title = "Antenatal–Intrapartum–Postnatal Continuum Journey by State (Senegal 2019)", caption = "Weighted proportions based on 2019DHS Segmentation") +
+  theme_minimal(base_size =12) +
+  theme(legend.position = "none",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 6.5, vjust = 0.5),
+        axis.text.y = element_text(size = 7.5),
+        plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        panel.grid.major = element_blank(),
+        panel.background = element_blank(),
+        plot.caption = element_text(size = 8))
+```
+
+#### 3.6.3. For State Matam
+```{r}
+#table(senegal$v024) #louga #matam
+matam.des <- subset(senegal.des, v024 == "matam") 
+vars <- c("anc.any", "anc.4plus", "fac.deli", "wom.hlthck1", "baby.hlthck1", "breastfed.excl", "dpt.full.yn.y", "fp.mod.now")
+get_prop_by_class <- function(var) {
+  df <- svyby(
+    formula = as.formula(paste0("~", var)),
+    by = ~class,
+    design = matam.des,
+    FUN = svymean,
+    na.rm = TRUE
+  )
+  df <- df %>%
+    dplyr::select(class, all_of(var)) %>%
+    rename(prop = all_of(var)) %>%
+    mutate(variable = var)
+  return(df)
+}
+
+results_list <- lapply(vars, get_prop_by_class)
+results_df <- bind_rows(results_list)
+
+results_df$variable <- factor(results_df$variable,
+  levels = vars,
+  labels = c("1+ ANC", "4+ ANC", "Facility Delivery", "PNC Woman", "PNC Baby", "Exclusive\nbreastfeeding", "Any Child\nFull-DPT", "Current mCP"))
+
+ggplot(results_df, aes(x = variable, y = prop * 100, fill = variable)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(prop * 100, 0)), vjust = -0.5, size = 3) + 
+  facet_wrap(~class, nrow = 2) +
+  scale_y_continuous(limits = c(0, 110)) +  
+  labs(y = "Percentage", x = NULL, title = "Antenatal–Intrapartum–Postnatal Continuum Journey by Segment (Matam)", caption = "Weighted proportions based on 2019DHS Segmentation") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 7, vjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        panel.grid.major = element_blank(),
+        panel.background = element_blank())
+```
+
+#### 3.6.4. For State Louga
+```{r}
+#table(senegal$v024) #louga #matam
+louga.des <- subset(senegal.des, v024 == "louga") 
+vars <- c("anc.any", "anc.4plus", "fac.deli", "wom.hlthck1", "baby.hlthck1", "breastfed.excl", "dpt.full.yn.y", "fp.mod.now")
+get_prop_by_class <- function(var) {
+  df <- svyby(
+    formula = as.formula(paste0("~", var)),
+    by = ~class,
+    design = matam.des,
+    FUN = svymean,
+    na.rm = TRUE
+  )
+  df <- df %>%
+    dplyr::select(class, all_of(var)) %>%
+    rename(prop = all_of(var)) %>%
+    mutate(variable = var)
+  return(df)
+}
+
+results_list <- lapply(vars, get_prop_by_class)
+results_df <- bind_rows(results_list)
+
+results_df$variable <- factor(results_df$variable,
+  levels = vars,
+  labels = c("1+ ANC", "4+ ANC", "Facility Delivery", "PNC Woman", "PNC Baby", "Exclusive\nbreastfeeding", "Any Child\nFull-DPT", "Current mCP"))
+
+ggplot(results_df, aes(x = variable, y = prop * 100, fill = variable)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = round(prop * 100, 0)), vjust = -0.5, size = 3) + 
+  facet_wrap(~class, nrow = 2) +
+  scale_y_continuous(limits = c(0, 110)) +  
+  labs(y = "Percentage", x = NULL, title = "Antenatal–Intrapartum–Postnatal Continuum Journey by Segment (Louga)", caption = "Weighted proportions based on 2019DHS Segmentation") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "none",
+        strip.text = element_text(face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 7, vjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5, face = "bold"),
+        panel.grid.major = element_blank(),
+        panel.background = element_blank())
+```
+
+#### 3.6.5. Health Utilization Index
+```{r}
+# something for showing healthcare engagement, 1st ANC, 4+ANC, delivery, PNC/baby check up/mother (whatever you think is relevant in these 3) ,Vaccination
+```
+
+```{r, echo=TRUE}
+# Create an index (aip.index) as following
+# first ANC happened during 1st trimester, yes: score 1, no: score 0 (anc.1sttri)
+# 4+ ANC, yes: score 1, no: score 0 (anc.4plus)
+# facility delivery, yes: score 1, no: score 0 (fac.deli)
+# Woman had PNC, yes: score 1, no: score 0 (wom.hlthck1)
+# Baby had PNC, yes: score 1, no: score 0 (baby.hlthck1)
+# Any full DPT, yes: score 1, no: score 0 (dpt.full.yn.y)
+```
+
+```{r}
+index.vars <- c("anc.1sttri", "anc.4plus", "fac.deli", "wom.hlthck1", "baby.hlthck1", "dpt.full.yn.y")
+
+senegal <- senegal %>%
+  mutate(aip.index = rowSums(dplyr::select(., all_of(index.vars)), na.rm = TRUE),
+         aip.index = ifelse(rowSums(!is.na(dplyr::select(., all_of(index.vars)))) == 0, NA, aip.index))
+# table(senegal$aip.index, useNA = "always")
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+```
+
+```{r}
+# We have decided to leave it out for now - the initial purpose of using a visualization of this index was to showcase the touch-point with health system before getting FP. We found it a bit tricky to use data PNC womena and PNC baby. Given how these 2 variables were coded, it includes PNC received at facility (facility delivery) and at home.
+```
+
+### 3.7. Spacing
+```{r, echo=TRUE}
+# available vars for spacing:
+#"recent.short", "any.short.interval","all.short", "any.very.short", "proportion.short""any.optimal", "all.optimal", "mean.interval", "median.interval", "min.interval", "max.interval", "inter.7_17.cnt", "inter.18_23.cnt", "inter.24plus.cnt", "total.intervals", "spacing.vary", "spacing.pattern", "spacing.range"
+
+#Use: all.short, mean.interval, spacing.pattern
+
+# table(senegal$all.short, useNA = "always")
+# #table(senegal$mean.interval, useNA = "always")
+# table(senegal$spacing.pattern, useNA = "always")
+# #table(senegal$total.intervals, useNA = "always")
+# Actually, all total.intervals >=1; the 2858 are women who did not have birth in the past 5 years, recode spacing.pattern. But for numeric variables like all.short and mean.interval, we need to keep the NA
+senegal$spacing.pattern <- ifelse(is.na(senegal$spacing.pattern), "No birth in last 5 years", senegal$spacing.pattern)
+senegal$spacing.pattern <- ifelse(senegal$spacing.pattern == "Single/no interval", "Single interval", senegal$spacing.pattern)
+#table(senegal$spacing.pattern, useNA = "always")
+senegal.des <-svydesign(id=~v021, strata=~v023, weights=~wt, data=senegal, nest=TRUE)
+
+# There are very few are "all short", only 341 out of ~ 5000 who had birth in the past 5 years
+```
+
+#### 3.7. Bar of mean.interval of CI
+```{r}
+spacing_data <- senegal %>% filter(!is.na(mean.interval))
+spacing.des <- svydesign(id=~v021, strata=~v023, weights=~wt, data=spacing_data, nest=TRUE)
+
+segment_means <- svyby(~mean.interval, ~class, spacing.des, svymean, na.rm = TRUE)
+ggplot(segment_means, aes(x = class, y = mean.interval)) +
+  geom_col(fill = "#4a90a4", alpha = 0.7, width = 0.7) +
+  geom_errorbar(aes(ymin = mean.interval - 1.96*se, ymax = mean.interval + 1.96*se), 
+                width = 0.1, color = "red", size = 0.5) +
+  geom_text(aes(label = round(mean.interval, 1)), 
+            vjust = -1.5, size = 3.5) +
+  labs(
+    title = "Survey-weighted Average Birth Intervals by Segment",
+    x = "Segment",
+    y = "Mean Birth Interval (months)",
+    caption = "Error bars show 95% confidence intervals\nBased on women with births in last 5 years"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +  
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold", hjust = 0.5),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    panel.grid.major.x = element_blank())
+```
+
+#### 3.7.2. Stacked bar
+```{r}
+spacing_props <- senegal %>%
+  filter(!is.na(spacing.pattern)) %>%
+  group_by(class, spacing.pattern) %>%
+  summarise(weight_sum = sum(wt, na.rm = TRUE), .groups = 'drop') %>%
+  group_by(class) %>%
+  mutate(
+    total_weight = sum(weight_sum),
+    proportion = weight_sum / total_weight,
+    percentage = round(proportion * 100, 0))
+
+mean_intervals_by_segment <- spacing_data %>%
+  group_by(class) %>%
+  summarise(
+    weighted_mean = weighted.mean(mean.interval, wt, na.rm = TRUE),
+    .groups = 'drop')
+
+p1 <- ggplot(spacing_props, aes(x = class, y = proportion, fill = spacing.pattern)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
+  geom_text(aes(label = paste0(percentage, "%")), 
+            position = position_stack(vjust = 0.5), 
+            size = 3, color = "white") +
+  scale_y_continuous(labels = scales::percent, name = "Proportion") +
+  scale_fill_manual(name = "Spacing Pattern",
+    values = c(
+      "All adequate spacing" = "#4682B4",       
+      "All short spacing" = "#DC143C",          
+      "Mixed spacing" = "#b590bf",              
+      "Single interval" = "#2E8B57",
+      "No birth in last 5 years" = "#778899")) +
+  labs(
+    title = "Birth Spacing Patterns and Mean Intervals by Segment",
+    subtitle = "Stacked bars show spacing patterns; red line shows mean birth interval",
+    x = "Segment"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text.x = element_text(angle = 0, hjust = 0.5),
+    legend.position = "right",
+    legend.spacing.x = unit(0.1, 'cm'), 
+    legend.spacing.y = unit(0.1, 'cm'),
+    legend.text = element_text(size = 6),
+    legend.title = element_text(size = 7),
+    panel.grid.major.x = element_blank())
+
+# Add second y-axis for mean intervals
+p2 <- p1 + 
+  geom_line(data = mean_intervals_by_segment, 
+            aes(x = class, y = weighted_mean/100, group = 1), 
+            color = "red", size = 1.2, inherit.aes = FALSE) +
+  geom_point(data = mean_intervals_by_segment, 
+             aes(x = class, y = weighted_mean/100), 
+             color = "red", size = 3, inherit.aes = FALSE) +
+  scale_y_continuous(
+    labels = scales::percent, 
+    name = "Proportion",
+    sec.axis = sec_axis(~.*100, name = "Mean Birth Interval (months)")) +
+  labs(caption = "Survey-weighted analysis\nRed line shows mean birth interval (right axis)")
+
+print(p2)
+```
+

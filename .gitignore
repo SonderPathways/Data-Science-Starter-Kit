@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Data (ajusta según tu caso)
+data/raw/
+*.csv
+*.tsv
+*.xlsx
+*.dta
+*.DTA

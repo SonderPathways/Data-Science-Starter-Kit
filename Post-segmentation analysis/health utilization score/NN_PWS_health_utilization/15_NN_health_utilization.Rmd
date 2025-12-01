@@ -1,0 +1,788 @@
+---
+title: "NN Health Utilization Index (Woman & child health service utilization)"
+author: "Lang Gao"
+date: "2025-03-15"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '6'
+  word_document:
+    toc: yes
+    toc_depth: '6'
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+---
+
+<style type="text/css">
+
+h1.title {
+  font-size: 21px;
+  color: Blue;
+  text-align: center;
+}
+h4.author { /* Header 4 - and the author and data headers use this too  */
+    font-size: 18px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Blue;
+  text-align: center;
+}
+h4.date { /* Header 4 - and the author and data headers use this too  */
+  font-size: 18px;
+  font-family: "Source Sans Pro Semibold", Times, serif;
+  color: Blue;
+  text-align: center;
+}
+</style>
+
+</br>
+
+
+***
+---
+
+0. Setting up the script
+Set up filepath, notation and packages
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+options(scipen = 100, digits = 4)
+#Set filepath
+setwd("/Users/langgao/Downloads/Freelancer projects/Sonder/NN/Pathways segmentation")
+```
+
+Load packages
+```{r}
+rm(list=ls())
+pacman::p_load("haven","ggplot2","gridExtra","reshape","survival","magrittr","dplyr","tidyr", "data.table", "survey", "plyr", "tm", "labelled", "stringr", "forcats", "doParallel","foreign", "psych","vtable","corrplot","survey","writexl")
+```
+
+Read in final data
+```{r}
+rural <- readRDS("LCA data/Final data named/NN_rural.class.rds")
+urban <- readRDS("LCA data/Final data named/NN_urban.class.rds")
+NN <- readRDS("LCA data/Final data named/NN_all.class.rds")
+```
+
+Merge with original data for creating variables needed
+```{r}
+NN.raw <-  read_sav("Pathways_Nigeria_merged.sav")
+#dim(NN.raw) #5031 7024
+NN.raw <- as.data.frame(NN.raw)
+NN.raw <- subset(NN.raw, NN.raw$ITYP==1)
+#dim(NN.raw) #3328 7024
+
+## Create caseid
+NN.raw <- NN.raw %>%
+    mutate(across(where(is.character), ~ if_else(. == "", NA_character_, trimws(.))))
+NN.raw$caseid <- paste(NN.raw$PSUclean, NN.raw$HHIDclean, NN.raw$ITYP, NN.raw$SbjNum)
+NN.raw$caseid <- gsub(" ", "", NN.raw$caseid, fixed=TRUE)
+
+
+NN.select <- NN.raw %>% 
+  dplyr::select(caseid, A05, T_A06_1)
+#dim(NN.select) #3328   19
+
+rural.select <- NN.raw %>% 
+  filter(URBAN_RURA == "R") %>% 
+  dplyr::select(caseid, A05, T_A06_1)
+#dim(rural.select) #1638   19
+urban.select <- NN.raw %>% 
+  filter(URBAN_RURA == "U") %>% 
+  dplyr::select(caseid, A05, T_A06_1)
+#dim(urban.select) #1690   19
+```
+
+
+```{r}
+NN <- merge(NN, NN.select, by="caseid", all.x=T)
+# dim(NN) #3211  308
+rural <- merge(rural, rural.select, by="caseid", all.x=T)
+urban <- merge(urban, urban.select, by="caseid", all.x=T)
+```
+
+## 1. Variable coding
+```{r}
+# NN <- NN %>% 
+#   mutate(kid.ill.1 = ifelse(T_C24_1==1, 1, 0),
+#          kid.ill.2 = ifelse(T_C24_2==1, 1, 0),
+#          kid.ill.3 = ifelse(T_C24_3==1, 1, 0),
+#          kid.ill.4 = ifelse(T_C24_4==1, 1, 0),
+#          kid.ill.5 = ifelse(T_C24_5==1, 1, 0),
+#          kid.ill.6 = ifelse(T_C24_6==1, 1, 0),
+#          kid.ill.7 = ifelse(T_C24_7==1, 1, 0),
+#          kid.ill.8 = ifelse(!is.na(T_C24_98), 1, 0))
+```
+
+```{r, echo=TRUE}
+#ANC ✅
+  #need variables: (1) number of total ANC visit for the last born, need numeric. anc.total is categorical
+    ##to merge with original data can get C17
+    ##then create anyanc (binary)
+  #need variables: (2) anc.4plus (already exist)
+
+#PNC ❌: no questions on PNC was asked in PWS survey v1.0; no alternative; so this one has to be excluded.
+
+#FP (modern family planning usage ever) ✅: (1) fp.current.modern == 1 or (2) fp.previous.modern == 1 
+
+#FP (any family planning usage ever) ✅ (1) fp.current.any == 1 or (2) fp.previous.any == 1
+
+#Used health service: this comes from (1) whether the respondent was visited by a fieldworker in the twelve months preceding the interview (2) whether the respondent visited a health facility for any reason in the twelve months preceding the interview. The proxy can be used ✅: (a) A05: Is there a {IF KENYA or NIGERIA: community health worker? - choose Yes (b) A06: Would you put the {IF KENYA or NIGERIA: community health worker? - choose First circle (The first circle is people you can talk openly with about your worries and difficulties.)
+
+#Home birth, ever: hb.yn (668 NAs) ✅
+table(NN$hb.yn, useNA = "always")
+#Fever medical treatment: this comes from h32z: whether the child was taken to a medical facility for treatment of the fever and/or cough; taking from the last born and the next-to-the-last-born. The proxy can be used ✅: (a) C24: During the last 3 months, did your child/children have...? [1] Pain when coughing [2] Cough with phlegm [5] Fever or chills AND (b) C25:When your child fell ill, what did you do? [1] Private doctors [2] Government health facility 
+  ###C25_1_recode, C25_2_recode
+
+#Diarrhea: medical treatment: similar to the above, the proxy can be used ✅:(a) C24: During the last 3 months, did your child/children have...? [4] Diarrhoea or stomach pain AND (b) C25:When your child fell ill, what did you do? [1] Private doctors [2] Government health facility
+```
+
+### 1.1. ANC
+```{r, echo=TRUE}
+#Note that in NN, no one had 0 ANC visit ... (not sure about the data quality). In this case, using anyanc won't differenciate respondents.
+```
+
+```{r}
+anc.mean <- as.integer(mean(NN$C17[NN$C17 != 97], na.rm = TRUE)) #4
+NN$anc.num <- ifelse(NN$C17 == 97, anc.mean, NN$C17)
+NN$anyanc <- ifelse(NN$anc.num >= 1, 1, 0)
+NN$anc.4plus <- ifelse(NN$anc.num >= 4, 1, 0)
+#table(NN$C17)
+```
+
+```{r, echo=TRUE}
+#anc.num: total number of ANC visits during the last pregnancy 
+table(NN$anc.num, useNA="always")
+
+#anyanc: binary, whether had any anc visits 
+table(NN$anyanc, useNA = "always")
+
+#anc.4plus: binary, whether had 4 or more anc visits
+table(NN$anc.4plus, useNA = "always")
+```
+
+### 1.2. FP (modern family planning usage ever)
+```{r}
+#(1) fp.current.modern == 1 or (2) fp.previous.modern == 1 
+NN$fp.mod.ever <- ifelse((NN$fp.current.modern == 1 | NN$fp.previous.modern == 1), 1, 0)
+```
+
+```{r, echo=TRUE}
+#fp.mod.ever: binary, considering the current use and those who not currently using but used in the past
+table(NN$fp.mod.ever, useNA="always")
+```
+
+### 1.3. FP (any family planning usgae ever)
+```{r}
+#(1) fp.current.any == 1 or (2) fp.previous.any == 1
+NN$fp.ever <- ifelse((NN$fp.current.any == 1 | NN$fp.previous.any == 1), 1, 0)
+```
+
+```{r, echo=TRUE}
+table(NN$fp.ever ,useNA="always")
+```
+
+### 1.4. Has community health worker in the area
+```{r, echo=TRUE}
+#The proxy can be used (a) A05: Is there a {IF KENYA or NIGERIA: community health worker in your area? - choose Yes; (b) A06: Would you put the {IF KENYA or NIGERIA: community health worker? - choose First circle (The first circle is people you can talk openly with about your worries and difficulties.)
+  ##Initially, tried to use the above 2 conditions with "AND"; but only minority put CHW in "1st circle" 
+#table(NN$A05, useNA = "always") #A05 == 1
+#table(NN$T_A06_1, useNA = "always")
+```
+
+```{r, echo=TRUE}
+NN$hc.area <- ifelse((NN$A05 == 1), 1, 0)
+table(NN$hc.area, useNA="always")
+```
+
+### 1.5. Home birth (ever)
+```{r, echo=TRUE}
+table(NN$hb.yn, useNA = "always")
+```
+
+### 1.6. Fever: medical treatment
+```{r, echo=TRUE}
+#The proxy can be used ✅: (a) C24: During the last 3 months, did your child/children have...? [1] Pain when coughing (kid.ill.1) [2] Cough with phlegm (kid.ill.2) [5] Fever or chills (kid.ill.5) AND (b) C25:When your child fell ill, what did you do? [1] Private doctors [2] Government health facility (kid.ill.doctor)
+
+NN$kid.fever <- ifelse((NN$kid.ill.1 ==1 | NN$kid.ill.2 ==1 | NN$kid.ill.5 ==1), 1, 0)
+table(NN$kid.fever, useNA = "always") 
+table(NN$kid.ill.doctor, useNA = "always")
+
+NN$fever <- ifelse((NN$kid.fever ==1 & NN$kid.ill.doctor ==1), 1, 0)
+table(NN$fever, useNA = "always")
+```
+
+### 1.7. Diarrhea: medical treatment
+```{r, echo=TRUE}
+#Similar to the above, the proxy can be used ✅:(a) C24: During the last 3 months, did your child/children have...? [4] Diarrhoea or stomach pain (kid.ill.4) AND (b) C25:When your child fell ill, what did you do? [1] Private doctors [2] Government health facility
+
+NN$kid.diarr <- ifelse((NN$kid.ill.4 ==1), 1, 0)
+table(NN$kid.diarr, useNA = "always") 
+
+NN$diarr <- ifelse((NN$kid.diarr ==1 & NN$kid.ill.doctor ==1), 1, 0)
+table(NN$diarr, useNA = "always")
+```
+### 1.8. Woman goes to health facility when ill
+```{r, echo=TRUE}
+table(NN$her.ill.doctor, useNA = "always")
+```
+
+### 1.9. Overview
+```{r, echo=TRUE}
+#Instead of using fp.ever (any FP ever), use fp.mod.ever (mCP ever) makes more sense?
+#Added health facility use when women fall sick 
+```
+
+```{r}
+table(NN$anyanc, useNA="always")
+table(NN$fp.mod.ever, useNA="always")
+table(NN$hc.area, useNA="always")
+table(NN$hb.yn, useNA="always")
+table(NN$fever, useNA="always")
+table(NN$diarr, useNA="always")
+table(NN$her.ill.doctor, useNA = "always")
+```
+
+## 2. Score by segment
+### 2.1. Data preparation
+```{r}
+setDT(NN)
+NN[, HC.score4:= (anyanc + hc.area + fp.mod.ever + diarr + fever + her.ill.doctor)]
+NN[hb.yn==0, HC.score4:= HC.score4 + 1]
+NN[is.na(hb.yn),HC.score4:= NA]
+
+table(NN$HC.score4, useNA="always")
+```
+
+```{r}
+#dim(NN) #3328  
+#NN2 <- NN[!duplicated(NN$caseid), ]
+#dim(NN2) #3328 #there is no dumplicate caseid, so can continue using NN
+table(NN$class, useNA="always") #no NA, all obs. are assigned with a cluster membership
+```
+
+```{r}
+table(NN$class,NN$anyanc,useNA="always")
+table(NN$class,NN$hc.area,useNA="always")
+table(NN$class,NN$fp.mod.ever,useNA="always")
+table(NN$class,NN$diarr,useNA="always")
+table(NN$class,NN$fever,useNA="always")
+table(NN$class,NN$her.ill.doctor,useNA="always")
+table(NN$class,NN$hb.yn,useNA="always")
+```
+
+```{r, echo=TRUE}
+NN$anyanc <- ifelse(is.na(NN$anyanc),"NA",NN$anyanc)
+NN$hc.area <- ifelse(is.na(NN$hc.area),"NA",NN$hc.area)
+NN$fp.mod.ever <- ifelse(is.na(NN$fp.mod.ever),"NA",NN$fp.mod.ever)
+NN$diarr <- ifelse(is.na(NN$diarr),"NA",NN$diarr)
+NN$fever <- ifelse(is.na(NN$fever),"NA",NN$fever)
+NN$her.ill.doctor <- ifelse(is.na(NN$fever),"NA",NN$fever)
+NN$hb.yn <- ifelse(is.na(NN$hb.yn),"NA",NN$hb.yn)
+#table(NN$hb.yn, useNA="always")
+
+NN$hf_deliv <- ifelse(NN$hb.yn==0,1,
+                      ifelse(NN$hb.yn==1,0,NA))
+NN$hf_deliv <- ifelse(is.na(NN$hf_deliv),"NA",NN$hf_deliv)
+#table(NN$hf_deliv,useNA="always")
+```
+
+
+```{r}
+#table(NN$URBAN_RURA, useNA = "always")
+
+NN <- NN %>% 
+  filter(!is.na(PSUclean))
+#dim(NN) #3328
+Pathdesign<-svydesign(id=~PSUclean, strata=~URBAN_RURA, weights=~weight, data=NN, survey.lonely.psu="adjust", nest=T)
+```
+
+### 2.2. Get totals that are represented by segment
+```{r}
+totals <- svytotal(~class, design = Pathdesign)
+tot <- reshape2::melt(svytable(~class, Pathdesign))
+tot <-data.table(tot)
+#dim(tot) #9, 2
+#view(tot)
+setkey(tot,value)
+```
+
+### 2.3. Function to compute subtracted value.y for each segment group
+#### 2.3.1. ANC
+```{r}
+seg <- reshape2::melt(svytable(~class+anyanc, Pathdesign))
+anc <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$anyanc))) {
+    na_row_value_x <- data$value.x[which(is.na(data$anyanc))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+anc <- anc %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+anc$perct <- 100*anc$value.x/anc$value.y
+anc$health.service <- "Any ANC"
+names(anc)[2] <-"health.service.status"
+```
+
+#### 2.3.2. Has health worker in the area
+```{r}
+seg <- reshape2::melt(svytable(~class+hc.area, Pathdesign))
+hc.area <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$hc.area))) {
+    na_row_value_x <- data$value.x[which(is.na(data$hc.area))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+hc.area <- hc.area %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+hc.area$perct <- 100*hc.area$value.x/hc.area$value.y
+hc.area$health.service <- "Has health worker in the area"
+names(hc.area)[2] <-"health.service.status"
+```
+
+#### 2.3.3. Ever used mCP
+```{r}
+# table(NN$fp.mod.ever)
+# table(NN$fp.current.modern)
+```
+
+```{r}
+seg <- reshape2::melt(svytable(~class+fp.mod.ever, Pathdesign))
+fp.mod.ever <- merge(seg,tot,by="class")
+
+fp.mod.ever$perct <- 100*fp.mod.ever$value.x/fp.mod.ever$value.y
+fp.mod.ever$health.service <- "Ever used mCP"
+names(fp.mod.ever)[2] <-"health.service.status"
+```
+
+#### 2.3.4. Diarrhea
+```{r}
+######## diarrhea
+seg <- reshape2::melt(svytable(~class+diarr, Pathdesign))
+diarr <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$diarr))) {
+    na_row_value_x <- data$value.x[which(is.na(data$diarr))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+diarr <- diarr %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+diarr$perct <- 100*diarr$value.x/diarr$value.y
+diarr$health.service <- "Medical treatment on diarrhea"
+names(diarr)[2] <-"health.service.status"
+```
+
+#### 2.3.5. Fever
+```{r}
+seg <- reshape2::melt(svytable(~class+fever, Pathdesign))
+fever <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$fever))) {
+    na_row_value_x <- data$value.x[which(is.na(data$fever))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+fever <- fever %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+fever$perct <- 100*fever$value.x/fever$value.y
+fever$health.service <- "Medical treatment on fever"
+names(fever)[2] <-"health.service.status"
+```
+
+#### 2.3.6. Woman going to health facility when ill
+```{r}
+seg <- reshape2::melt(svytable(~class+her.ill.doctor, Pathdesign))
+her.ill.doctor <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$her.ill.doctor))) {
+    na_row_value_x <- data$value.x[which(is.na(data$her.ill.doctor))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+her.ill.doctor <- her.ill.doctor %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+her.ill.doctor$perct <- 100*her.ill.doctor$value.x/her.ill.doctor$value.y
+her.ill.doctor$health.service <- "Woman goes to health facility when ill"
+names(her.ill.doctor)[2] <-"health.service.status"
+```
+
+#### 2.3.7. Facility delivery
+```{r}
+seg <- reshape2::melt(svytable(~class+hf_deliv, Pathdesign))
+hf_deliv <- merge(seg,tot,by="class")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$hf_deliv))) {
+    na_row_value_x <- data$value.x[which(is.na(data$hf_deliv))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+hf_deliv <- hf_deliv %>%
+  group_by(class) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+hf_deliv$perct <- 100*hf_deliv$value.x/hf_deliv$value.y
+hf_deliv$health.service <- "Health facility delivery"
+names(hf_deliv)[2] <-"health.service.status"
+```
+
+### 2.4. Calculate
+#### 2.4.1. With "has CHW in the area"
+```{r}
+health.service.NN <- rbind(anc, hc.area, fp.mod.ever, diarr, fever, her.ill.doctor, hf_deliv)
+names(health.service.NN)[5] <- "percentage"
+names(health.service.NN)[4] <- "total_in_segment"
+names(health.service.NN)[3] <- "number"
+
+health.service.NN <- health.service.NN %>% filter(!is.na(health.service.status))
+health.service.NN$class <- as.character(health.service.NN$class)
+health.service.NN$health.service.status <- as.character(health.service.NN$health.service.status)
+#is.data.frame(health.service.NN) #already a data frame
+#health.service.NN
+```
+
+#### 2.4.2. Without "has CHW in the area"
+```{r}
+health.service.NN.1 <- rbind(anc, fp.mod.ever, diarr, fever, her.ill.doctor, hf_deliv)
+names(health.service.NN.1)[5] <- "percentage"
+names(health.service.NN.1)[4] <- "total_in_segment"
+names(health.service.NN.1)[3] <- "number"
+
+health.service.NN.1 <- health.service.NN.1 %>% filter(!is.na(health.service.status))
+health.service.NN.1$class <- as.character(health.service.NN.1$class)
+health.service.NN.1$health.service.status <- as.character(health.service.NN.1$health.service.status)
+#is.data.frame(health.service.NN.1) #already a data frame
+#health.service.NN.1
+```
+
+### 2.5. Create averages for utilizaton
+#### 2.5.1. With "has CHW in the area"
+```{r}
+health.service.NN.ave <- health.service.NN %>%
+  dplyr::group_by(class, health.service.status) %>%
+  dplyr::summarise(average.utilization = mean(percentage)) %>% 
+  filter(health.service.status == 1)
+
+health.service.NN.ave
+health.service.NN
+```
+
+#### 2.5.2. Without "has CHW in the area"
+```{r}
+health.service.NN.ave.1 <- health.service.NN.1 %>%
+  dplyr::group_by(class, health.service.status) %>%
+  dplyr::summarise(average.utilization = mean(percentage)) %>% 
+  filter(health.service.status == 1)
+
+health.service.NN.ave.1
+health.service.NN.1
+```
+
+```{r}
+# write.csv(health.service.NN,"health utilization score files/[Segment]heath_utilization_by_service_NN.csv")
+# write.csv(health.service.NN.ave,"health utilization score files/[Segment]heath_utilization_average_NN.csv")
+
+write_xlsx(
+  list("Status with CHW" = health.service.NN, 
+       "Status without CHW" = health.service.NN.1,
+       "Average score with CHW" = health.service.NN.ave,
+       "Average score without CHW" = health.service.NN.ave.1), 
+  path = "health utilization score files/[Segment]health_utilization_score.xlsx")
+```
+
+## 3. Score by profile
+### 3.1. Data preparation
+```{r}
+NN <- NN %>% 
+  mutate(profile = case_when(
+    class %in% c("U1-NN", "U2-NN") ~ "Worried Potentials",
+    class == "R2-NN" ~ "Intending Support Seekers",
+    class %in% c("U3-NN", "U4-NN") ~ "Aware Reactives",
+    class %in% c("R3.1-NN", "R3.2-NN", "R4-NN") ~ "Unreached Fatalists")) 
+
+rural <- rural %>% 
+  mutate(profile = case_when(
+    class %in% c("U1-NN", "U2-NN") ~ "Worried Potentials",
+    class == "R2-NN" ~ "Intending Support Seekers",
+    class %in% c("U3-NN", "U4-NN") ~ "Aware Reactives",
+    class %in% c("R3.1-NN", "R3.2-NN", "R4-NN") ~ "Unreached Fatalists")) 
+
+urban <- urban %>% 
+  mutate(profile = case_when(
+    class %in% c("U1-NN", "U2-NN") ~ "Worried Potentials",
+    class == "R2-NN" ~ "Intending Support Seekers",
+    class %in% c("U3-NN", "U4-NN") ~ "Aware Reactives",
+    class %in% c("R3.1-NN", "R3.2-NN", "R4-NN") ~ "Unreached Fatalists")) 
+```
+
+```{r}
+table(NN$profile, useNA = "always")
+```
+
+```{r}
+table(NN$profile,NN$anyanc,useNA="always")
+table(NN$profile,NN$hc.area,useNA="always")
+table(NN$profile,NN$fp.mod.ever,useNA="always")
+table(NN$profile,NN$diarr,useNA="always")
+table(NN$profile,NN$fever,useNA="always")
+table(NN$profile,NN$her.ill.doctor,useNA="always")
+table(NN$profile,NN$hb.yn,useNA="always")
+```
+
+### 3.2. Get totals that are represented by segment
+```{r}
+Pathdesign<-svydesign(id=~PSUclean, strata=~URBAN_RURA, weights=~weight, data=NN, survey.lonely.psu="adjust", nest=T)
+totals <- svytotal(~profile, design = Pathdesign)
+tot <- reshape2::melt(svytable(~profile, Pathdesign))
+tot <-data.table(tot)
+#dim(tot) #4, 2
+#view(tot)
+setkey(tot,value)
+```
+
+### 3.3. Function to compute subtracted value.y for each segment group
+#### 3.3.1. ANC
+```{r}
+prof <- reshape2::melt(svytable(~profile+anyanc, Pathdesign))
+anc <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$anyanc))) {
+    na_row_value_x <- data$value.x[which(is.na(data$anyanc))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+anc <- anc %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+anc$perct <- 100*anc$value.x/anc$value.y
+anc$health.service <- "Any ANC"
+names(anc)[2] <-"health.service.status"
+```
+
+#### 3.3.2. Having health worker in 1st circle
+```{r}
+prof <- reshape2::melt(svytable(~profile+hc.area, Pathdesign))
+hc.area <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$hc.area))) {
+    na_row_value_x <- data$value.x[which(is.na(data$hc.area))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+hc.area <- hc.area %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+hc.area$perct <- 100*hc.area$value.x/hc.area$value.y
+hc.area$health.service <- "Having health worker in 1st circle"
+names(hc.area)[2] <-"health.service.status"
+```
+
+#### 3.3.3. Ever used mCP
+```{r}
+prof <- reshape2::melt(svytable(~profile+fp.mod.ever, Pathdesign))
+fp.mod.ever <- merge(prof,tot,by="profile")
+
+fp.mod.ever$perct <- 100*fp.mod.ever$value.x/fp.mod.ever$value.y
+fp.mod.ever$health.service <- "Ever used mCP"
+names(fp.mod.ever)[2] <-"health.service.status"
+```
+
+#### 3.3.4. Diarrhea
+```{r}
+prof <- reshape2::melt(svytable(~profile+diarr, Pathdesign))
+diarr <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$diarr))) {
+    na_row_value_x <- data$value.x[which(is.na(data$diarr))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+diarr <- diarr %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+diarr$perct <- 100*diarr$value.x/diarr$value.y
+diarr$health.service <- "Medical treatment on diarrhea"
+names(diarr)[2] <-"health.service.status"
+```
+
+#### 3.3.5. Fever
+```{r}
+prof <- reshape2::melt(svytable(~profile+fever, Pathdesign))
+fever <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$fever))) {
+    na_row_value_x <- data$value.x[which(is.na(data$fever))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+fever <- fever %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+fever$perct <- 100*fever$value.x/fever$value.y
+fever$health.service <- "Medical treatment on fever"
+names(fever)[2] <-"health.service.status"
+```
+
+#### 3.3.6. Woman going to health facility when ill
+```{r}
+prof <- reshape2::melt(svytable(~profile+her.ill.doctor, Pathdesign))
+her.ill.doctor <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$her.ill.doctor))) {
+    na_row_value_x <- data$value.x[which(is.na(data$her.ill.doctor))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+her.ill.doctor <- her.ill.doctor %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+her.ill.doctor$perct <- 100*her.ill.doctor$value.x/her.ill.doctor$value.y
+her.ill.doctor$health.service <- "Woman goes to health facility when ill"
+names(her.ill.doctor)[2] <-"health.service.status"
+```
+
+#### 3.3.7. Facility delivery
+```{r}
+prof <- reshape2::melt(svytable(~profile+hf_deliv, Pathdesign))
+hf_deliv <- merge(prof,tot,by="profile")
+
+subtract_value_y <- function(data) {
+  if (any(is.na(data$hf_deliv))) {
+    na_row_value_x <- data$value.x[which(is.na(data$hf_deliv))]
+    data$value.y <- data$value.y - na_row_value_x
+  }
+  return(data)
+}
+
+hf_deliv <- hf_deliv %>%
+  group_by(profile) %>%
+  do(subtract_value_y(.)) %>%
+  ungroup()
+
+hf_deliv$perct <- 100*hf_deliv$value.x/hf_deliv$value.y
+hf_deliv$health.service <- "Health facility delivery"
+names(hf_deliv)[2] <-"health.service.status"
+```
+
+### 3.4. Calculate
+#### 3.4.1. With "has CHW in the area"
+```{r}
+health.service.NN <- rbind(anc, hc.area, fp.mod.ever, diarr, fever, her.ill.doctor, hf_deliv)
+names(health.service.NN)[5] <- "percentage"
+names(health.service.NN)[4] <- "total_in_profile"
+names(health.service.NN)[3] <- "number"
+
+health.service.NN <- health.service.NN %>% filter(!is.na(health.service.status))
+health.service.NN$profile <- as.character(health.service.NN$profile)
+health.service.NN$health.service.status <- as.character(health.service.NN$health.service.status)
+#is.data.frame(health.service.NN) #already a data frame
+#health.service.NN
+```
+
+#### 3.4.2. Without "has CHW in the area"
+```{r}
+health.service.NN.1 <- rbind(anc, fp.mod.ever, diarr, fever, her.ill.doctor, hf_deliv)
+names(health.service.NN.1)[5] <- "percentage"
+names(health.service.NN.1)[4] <- "total_in_profile"
+names(health.service.NN.1)[3] <- "number"
+
+health.service.NN.1 <- health.service.NN.1 %>% filter(!is.na(health.service.status))
+health.service.NN.1$profile <- as.character(health.service.NN.1$profile)
+health.service.NN.1$health.service.status <- as.character(health.service.NN.1$health.service.status)
+```
+
+### 3.5. Create averages for utilizaton
+#### 3.5.1. With "has CHW in the area"
+```{r}
+health.service.NN.ave <- health.service.NN %>%
+  dplyr::group_by(profile, health.service.status) %>%
+  dplyr::summarise(average.utilization = mean(percentage)) %>% 
+  filter(health.service.status == 1)
+
+health.service.NN.ave
+health.service.NN
+```
+
+#### 3.5.2. Without "has CHW in the area"
+```{r}
+health.service.NN.ave.1 <- health.service.NN.1 %>%
+  dplyr::group_by(profile, health.service.status) %>%
+  dplyr::summarise(average.utilization = mean(percentage)) %>% 
+  filter(health.service.status == 1)
+
+health.service.NN.ave.1
+health.service.NN.1
+```
+
+```{r}
+# write.csv(health.service.NN,"health utilization score files/[Profile]heath_utilization_by_service_NN.csv")
+# write.csv(health.service.NN.ave,"health utilization score files/[Profile]heath_utilization_average_NN.csv")
+write_xlsx(
+  list("Status with CHW" = health.service.NN, 
+       "Status without CHW" = health.service.NN.1,
+       "Average score with CHW" = health.service.NN.ave,
+       "Average score without CHW" = health.service.NN.ave.1), 
+  path = "health utilization score files/[Profile]health_utilization_score.xlsx")
+```
+

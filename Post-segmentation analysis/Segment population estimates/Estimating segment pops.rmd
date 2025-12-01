@@ -1,0 +1,133 @@
+---
+title: "Estimating Segment Populations"
+author: "Jess Long"
+date: "2025-11-07"
+output:
+  pdf_document: 
+    highlight: tango
+
+---
+
+
+# Steps to assign population totals
+
+
+## National totals by segment
+
+### 1. Obtain the number of women of reproductive age (WRA) from the UN World Population Prospects Data Portal
+
+- Go to [UN World Population Prospects](https://population.un.org/wpp/) https://population.un.org/wpp/
+- Select “data portal”
+- Select “female population of reproductive age” and applicable country and year
+- Select Export and download the output as a .csv file
+- Load file into R and find the total pop of WRA
+
+**EXAMPLE**: For this document, I will be estimating the segment populations for the Kenya 2022 DHS solution. To start, I followed the steps above and selected Kenya 2022 and downloaded as a .csv. The code below shows how to read this .csv file into R and find the WRA population total. 
+```{r}
+#Read in .csv file
+kenya_wra <- read.csv("/Users/jesslong/Desktop/Datafiles/unpopulation_dataportal_20251107125406.csv")
+
+#The total pop of WRA will be shown in column "Subregion"
+unique(kenya_wra$Subregion)
+```
+This output, 14,084,146, is the total number of WRA in Kenya in 2022.
+
+
+
+### 2. Determine the percent of WRA in DHS who would be eligible for Pathways based on inclusion criteria
+
+- Use the [Segmentation Solutions Log](https://www.notion.so/sonderdesign/2b6fc0a9feb64fcaad796e01aa3545fd?v=d56aed64a5d848958b9b0a0108ac29d0) in Notion to find the inclusion criteria for the segmentation solution you are using
+- Use DHS files to find the number of women eligible for Pathways based on this criteria
+- Divide the number of Pathways-eligible WRA by the total number of women in the IR file to get percent of WRA who are eligible for Pathways. 
+
+
+**EXAMPLE**: For the Kenya 2022 DHS solution, the Segmentation Solutions log tells me that the inclusion criteria are WRA with a child under 5. Below is the R code to find the percent of all WRA in the Kenya 2022 DHS IR file that have a child under 5 years of age. 
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+
+library(haven)
+library(dplyr)
+
+```
+
+```{r}
+
+#Open DHS IR and BR files
+dhsdata_path <- "/Users/jesslong/Desktop/Datafiles/DHS/Kenya 2022"
+BR <- read_dta(file.path(dhsdata_path, "KEBR8CDT/KEBR8CFL.DTA"))
+IR <- read_dta(file.path(dhsdata_path, "KEIR8CDT/KEIR8CFL.DTA"))
+
+#Filter BR to children under 5
+BR <- BR %>%
+  dplyr::filter(b3 >= (v008 - 60))
+
+#Create a new dataset limited to women in IR who have a child under 5
+IR_pw <- IR %>%
+  dplyr::filter(caseid %in% BR$caseid)
+
+#Look at the number of women remaining
+nrow(IR_pw)
+
+#find the number of women in the original IR file
+nrow(IR)
+
+#Divide the IR_pw total by IR total to get % of eligible WRA
+(14491 / 32156)
+```
+
+This output, 0.4506468, or 45.1%, is the percent of all WRA who are eligible based on the Pathways criteria for that segmentation solution. 
+
+
+
+### 3. For national population totals, multiple the percent identified in step #2 by the total population of WRA identified in step #1 to get the total number of Pathways applicable women. 
+
+```{r}
+# % of WRA in Pathway
+0.4506468 * 14084146
+```
+This output, 6,346,975, is the total number of WRA in Kenya in 2022 who would be eligible for Pathways. 
+
+
+
+### 4. For segment totals, load in the Pathways dataset to get segment specific population percentages. Then multiply those percentages by the national total estimated in step #3
+
+**EXAMPLE**: For this example, I downloaded the cleaned Kenya 2022 DHS Solution file from OpenHexa. This file contains all the Pathways data for this segmentation, with segments labeled as "segment_name". 
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+library(survey)
+```
+
+```{r}
+#Read in Pathways datafile
+kenya <- read.csv("/Users/jesslong/Desktop/Datafiles/Kenya_dhs_2024/Kenya_2022DHS8_1.2.csv")
+
+#set up the survey design
+ken.des<-svydesign(id=kenya$v021, strata=kenya$v023, weights=kenya$wt,
+                     survey.lonely.psu="adjust", nest=T, data=kenya)
+
+#Create a segment table that includes the weighted percent of population in each segment,
+#then the totals using the national total found from step #3
+ke.seg.tab <- svytable(~segment_name, design = ken.des)
+ke.seg.tab <- as.data.frame(svytable(~segment_name, design = ken.des))
+ke.seg.tab <- ke.seg.tab %>%
+  mutate(
+    percentage = (Freq / sum(Freq)) * 100,                  
+    segment_population = (percentage / 100) * 6346975 
+  )
+ke.seg.tab
+```
+The final column of this table, segment_population, shows the segment total populations. 
+
+
+
+## Limitations
+1. WRA population totals included in the UN World Population Prospects are modeled estimates and should be considered approximate totals.
+
+2. If the inclusion criteria listed in the [Segmentation Solutions Log](https://www.notion.so/sonderdesign/2b6fc0a9feb64fcaad796e01aa3545fd?v=d56aed64a5d848958b9b0a0108ac29d0) in Notion do not include all applicable criteria, the total number derived from step #2 will not match the total in the Pathways dataset. In this case, you can just use the total included in the Pathways dataset for that solution, but then you will not know what criteria were used to limit the IR dataset down to the total you are using. To do this, the total number of entries in the pathways dataset will replace the IR_pw total used in step #2. All other steps remain the same. 
+
+
+
+
+
+
+
