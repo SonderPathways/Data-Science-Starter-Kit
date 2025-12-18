@@ -6,6 +6,22 @@ The primary goal of this Starter Kit is to promote reproducibility, consistency,
 
 Beyond code, this repository also includes recommended project structures, documentation practices, and version control guidelines to support seamless collaboration. Whether you are conducting a quick exploratory study, developing a full analytical workflow, or integrating results into your own tools, this Starter Kit provides a reliable, open-source foundation to build on.
 
+## Repository Examples Index
+
+- **Health utilization score**
+  - [Lagos DHS health utilization](Post-segmentation analysis/health utilization score/lagos_health_utilization/readme.md)
+  - [Nigeria Pathways survey health utilization](Post-segmentation analysis/health utilization score/NN_PWS_health_utilization/readme.md)
+- **Predicted outcomes with updated weights** – [Senegal survey-weighted logistic example](Post-segmentation analysis/predicted_outcomes_updated_weights/readme.md)
+- **Random forest feature discovery** – [Nigeria predictor importance workflow](Post-segmentation analysis/random_forest_feature_discovery/readme.md)
+- **Segment population estimates** – [UN WPP + DHS methodology](Post-segmentation analysis/Segment population estimates/readme.md)
+- **U5MR analyses**
+  - [Overview](Post-segmentation analysis/U5MR/readme.md)
+  - [DHS-based U5MR scripts (Kenya, Northern Nigeria)](Post-segmentation analysis/U5MR/U5MR for DHS Solutions/readme.md)
+- **Use segments to predict outcomes**
+  - [Overview](Post-segmentation analysis/Use segment to predict outcomes/readme.md)
+  - [Northern Nigeria Pathways logistic models](Post-segmentation analysis/Use segment to predict outcomes/north_nigeria_pathways/readme.md)
+- **Validate hypotheses from qualitative research** – [Senegal qual-to-quant workflow](Post-segmentation analysis/Validate hypotheses from qual/readme.md)
+
 ## 1. Python environment
 
 Currently, the environment used to export reports is **HTML-reports-emoTyqDj** and it requires to be activated from terminal using this:
