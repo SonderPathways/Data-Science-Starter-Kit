@@ -9,18 +9,18 @@ Beyond code, this repository also includes recommended project structures, docum
 ## Repository Examples Index
 
 - **Health utilization score**
-  - [Lagos DHS health utilization](Post-segmentation analysis/health utilization score/lagos_health_utilization/readme.md)
-  - [Nigeria Pathways survey health utilization](Post-segmentation analysis/health utilization score/NN_PWS_health_utilization/readme.md)
-- **Predicted outcomes with updated weights** – [Senegal survey-weighted logistic example](Post-segmentation analysis/predicted_outcomes_updated_weights/readme.md)
-- **Random forest feature discovery** – [Nigeria predictor importance workflow](Post-segmentation analysis/random_forest_feature_discovery/readme.md)
-- **Segment population estimates** – [UN WPP + DHS methodology](Post-segmentation analysis/Segment population estimates/readme.md)
+  - [Lagos DHS health utilization](Post-segmentation%20analysis/health%20utilization%20score/lagos_health_utilization/readme.md)
+  - [Nigeria Pathways survey health utilization](Post-segmentation%20analysis/health%20utilization%20score/NN_PWS_health_utilization/readme.md)
+- **Predicted outcomes with updated weights** – [Senegal survey-weighted logistic example](Post-segmentation%20analysis/predicted_outcomes_updated_weights/readme.md)
+- **Random forest feature discovery** – [Nigeria predictor importance workflow](Post-segmentation%20analysis/random_forest_feature_discovery/readme.md)
+- **Segment population estimates** – [UN WPP + DHS methodology](Post-segmentation%20analysis/Segment%20population%20estimates/readme.md)
 - **U5MR analyses**
-  - [Overview](Post-segmentation analysis/U5MR/readme.md)
-  - [DHS-based U5MR scripts (Kenya, Northern Nigeria)](Post-segmentation analysis/U5MR/U5MR for DHS Solutions/readme.md)
+  - [Overview](Post-segmentation%20analysis/U5MR/readme.md)
+  - [DHS-based U5MR scripts (Kenya, Northern Nigeria)](Post-segmentation%20analysis/U5MR/U5MR%20for%20DHS%20Solutions/readme.md)
 - **Use segments to predict outcomes**
-  - [Overview](Post-segmentation analysis/Use segment to predict outcomes/readme.md)
-  - [Northern Nigeria Pathways logistic models](Post-segmentation analysis/Use segment to predict outcomes/north_nigeria_pathways/readme.md)
-- **Validate hypotheses from qualitative research** – [Senegal qual-to-quant workflow](Post-segmentation analysis/Validate hypotheses from qual/readme.md)
+  - [Overview](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/readme.md)
+  - [Northern Nigeria Pathways logistic models](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/north_nigeria_pathways/readme.md)
+- **Validate hypotheses from qualitative research** – [Senegal qual-to-quant workflow](Post-segmentation%20analysis/Validate%20hypotheses%20from%20qual/readme.md)
 
 ## 1. Python environment
 
