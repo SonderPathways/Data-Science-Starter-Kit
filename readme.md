@@ -8,19 +8,17 @@ Beyond code, this repository also includes recommended project structures, docum
 
 ## Repository Examples Index
 
-- **Health utilization score**
-  - [Lagos DHS health utilization](Post-segmentation%20analysis/health%20utilization%20score/lagos_health_utilization/readme.md)
-  - [Nigeria Pathways survey health utilization](Post-segmentation%20analysis/health%20utilization%20score/NN_PWS_health_utilization/readme.md)
-- **Predicted outcomes with updated weights** – [Senegal survey-weighted logistic example](Post-segmentation%20analysis/predicted_outcomes_updated_weights/readme.md)
-- **Random forest feature discovery** – [Nigeria predictor importance workflow](Post-segmentation%20analysis/random_forest_feature_discovery/readme.md)
-- **Segment population estimates** – [UN WPP + DHS methodology](Post-segmentation%20analysis/Segment%20population%20estimates/readme.md)
-- **U5MR analyses**
-  - [Overview](Post-segmentation%20analysis/U5MR/readme.md)
-  - [DHS-based U5MR scripts (Kenya, Northern Nigeria)](Post-segmentation%20analysis/U5MR/U5MR%20for%20DHS%20Solutions/readme.md)
-- **Use segments to predict outcomes**
-  - [Overview](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/readme.md)
-  - [Northern Nigeria Pathways logistic models](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/north_nigeria_pathways/readme.md)
-- **Validate hypotheses from qualitative research** – [Senegal qual-to-quant workflow](Post-segmentation%20analysis/Validate%20hypotheses%20from%20qual/readme.md)
+1. **[Health utilization score](Post-segmentation%20analysis/health%20utilization%20score/)**
+   - [Lagos DHS health utilization](Post-segmentation%20analysis/health%20utilization%20score/lagos_health_utilization/)
+   - [Nigeria Pathways survey health utilization](Post-segmentation%20analysis/health%20utilization%20score/NN_PWS_health_utilization/)
+2. **[Predicted outcomes with updated weights](Post-segmentation%20analysis/predicted_outcomes_updated_weights/)**
+3. **[Random forest feature discovery](Post-segmentation%20analysis/random_forest_feature_discovery/)**
+4. **[Segment population estimates](Post-segmentation%20analysis/Segment%20population%20estimates/)**
+5. **[U5MR analyses](Post-segmentation%20analysis/U5MR/)**
+   - [DHS-based U5MR scripts (Kenya, Northern Nigeria)](Post-segmentation%20analysis/U5MR/U5MR%20for%20DHS%20Solutions/)
+6. **[Use segments to predict outcomes](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/)**
+   - [Northern Nigeria Pathways logistic models](Post-segmentation%20analysis/Use%20segment%20to%20predict%20outcomes/north_nigeria_pathways/)
+7. **[Validate hypotheses from qualitative research](Post-segmentation%20analysis/Validate%20hypotheses%20from%20qual/)**
 
 ## 1. Python environment
 
