@@ -20,7 +20,7 @@
 
 rm(list=ls())
 library(haven)
-library(naniar) 
+library(naniar)
 library(dplyr)
 library(tidyr)
 library(survey)
@@ -28,8 +28,9 @@ library(sjlabelled)
 library(data.table)
 library(expss)
 library(stringr)
-#install.packages("DHS.rates")
 library(DHS.rates)
+# Adding charting libraries
+library(ggplot2)
 
 ##########################################
 #########################################
@@ -175,4 +176,31 @@ NNmort_strata5 <- chmort(BR_CMORT, Class = "strata", Period = 60)
 #By segment
 NNmort_segment5 <- chmort(BR_CMORT, Class = "segment_name", Period = 60, JK ="Yes")
 
+# check
+unique(NNmort_segment5$iterations)
 
+# check 
+table(NNmort_segment5$Class)
+
+# filtering
+NNmort_segment5 <- NNmort_segment5 %>%
+  group_by(Class) %>%
+  mutate(Indicator = c("NNMR","PNNMR","IMR","CMR","U5MR")) %>%
+  ungroup()
+
+u5mr_segment5 <- NNmort_segment5 %>%
+  filter(Indicator == "U5MR")
+
+# updated chart
+ggplot(u5mr_segment5, 
+       aes(x = reorder(Class, R), y = R)) +
+  geom_col(fill = "steelblue") +
+  geom_errorbar(aes(ymin = LCI, ymax = UCI), width = 0.2) +
+  coord_flip() +
+  labs(
+    title = "Under-5 Mortality Rate (U5MR) by Segment",
+    subtitle = "Nigeria DHS – Last 5 Years (95% CI)",
+    x = "Segment",
+    y = "U5MR (per 1,000 live births)"
+  ) +
+  theme_minimal(base_size = 12)
