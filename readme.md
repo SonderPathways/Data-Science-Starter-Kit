@@ -6,6 +6,8 @@ The primary goal of this Starter Kit is to promote reproducibility, consistency,
 
 Beyond code, this repository also includes recommended project structures, documentation practices, and version control guidelines to support seamless collaboration. Whether you are conducting a quick exploratory study, developing a full analytical workflow, or integrating results into your own tools, this Starter Kit provides a reliable, open-source foundation to build on.
 
+If you want to contribute to this repository, please check [this guidelines](contribution-guidelines.md).
+
 ## Repository Examples Index
 
 1. **[Health utilization score](Post-segmentation%20analysis/health%20utilization%20score/)**
