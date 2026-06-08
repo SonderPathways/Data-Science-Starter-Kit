@@ -1,0 +1,21 @@
+{
+  "base_template": "base",
+  "mimetypes": {
+    "text/html": true
+  },
+  "preprocessors": {
+    "100-metadata": {
+      "type": "pretty_jupyter.HtmlNbMetadataPreprocessor",
+      "enabled": true
+    },
+    "200-pygments": {
+      "type": "nbconvert.preprocessors.CSSHTMLHeaderPreprocessor",
+      "enabled": true,
+      "style": "default"
+    },
+    "300-token-preprocessor": {
+      "type": "pretty_jupyter.TokenPreprocessor",
+      "enabled": true
+    }
+  }
+}

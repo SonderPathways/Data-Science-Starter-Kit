@@ -1,0 +1,138 @@
+{%- extends 'base.html.j2' -%}
+
+{% from 'mathjax.html.j2' import mathjax %}
+{% from 'celltags.j2' import celltags %}
+
+{% set metadata = resources["pj_metadata"] %}
+
+{%- block header -%}
+{% set title = metadata["title"] %}
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  {% block meta %}
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  {% if "favicon" in metadata %}
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>{{ metadata['favicon'] }}</text></svg>">
+  {% endif %}
+
+  {% for k, v in metadata.items() if k != "output" %}
+  <meta property="{{ k | e }}" content="{{ v | e}}" />
+  {% endfor %}
+  {% endblock meta %}
+
+  <title>{{ title | e }}</title>
+
+  <!-- jquery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+    integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+
+  {{ resources.include_css("static/quant-lite.css") }}
+
+  <!-- plotly -->
+  {% if resources.pj_metadata.output.html.include_plotlyjs %}
+  <script src="{{ resources.include_url('static/libs/plotly.min.js') }}"></script>
+  {% endif %}
+  <!-- require -->
+  <script src="{{ resources.include_url('static/libs/require.min.js') }}"></script>
+</head>
+
+{%- endblock header -%}
+
+{%- block body_header -%}
+
+<body>
+  <div class="container main-container">
+    {% block main_container_start %}{% endblock main_container_start %}
+    {%- endblock body_header -%}
+
+
+    {# show/hide all code cells #}
+    {% set code_all_s %}
+    {% block code_all %}
+    {% set html_metadata = metadata["output"]["html"] %}
+    {% if html_metadata["code_tools"] and resources.global_content_filter.include_input %}
+    <div class="row" style="margin-bottom: 10px;">
+      <div id="jup-show-hide-all-menu" class="btn-group pull-right">
+        <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+          aria-expanded="false"><span>Code All</span> <span class="caret"></span></button>
+        <ul class="dropdown-menu" style="min-width: 50px;">
+          <li><a id="jup-show-all-code" href="#">Show All Code</a></li>
+          <li><a id="jup-hide-all-code" href="#">Hide All Code</a></li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% endblock code_all %}
+    {% endset %}
+
+    {# main body loop #}
+    {%- block body_loop -%}
+    <div class="row">
+      {% set html_metadata = metadata["output"]["html"] %}
+
+      {% set toc = html_metadata["toc"] %}
+      {% if toc %}
+      <div class="col-12 col-lg-4 col-xl-3 gx-lg-0">
+        <div id="toc-container" class="border-bottom quant-lite-toc">
+          <p class="toc-title">TABLE OF CONTENTS</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {% set container_layout = "col-12 col-lg-8 col-xl-9" if toc else "col-12" %}
+      <div class="border-start {{ container_layout }}">
+        {% block page_header %}
+        <header id="pageHeader">
+          {% if "date" in metadata %}
+          <p>Report version: {{ metadata["date"] }}</p>
+          {% endif %}
+        </header>
+        {% endblock page_header %}
+        {% block main_content_before %}{% endblock main_content_before %}
+        <div id="main-content" class="toc-content">
+          {% block main_content_start %}{% endblock main_content_start %}
+          {{ code_all_s }}
+          {{ super() }}
+          {% block main_content_end %}{% endblock main_content_end %}
+        </div>
+        {% block main_content_after %}{% endblock main_content_after %}
+      </div>
+    </div>
+    {%- endblock body_loop -%}
+
+    {%- block body_footer -%}
+    {% block main_container_end %}{% endblock main_container_end %}
+  </div>
+
+  {# js files for notebooks: extend this to provide custom javascript #}
+  {% block notebook_js %}
+
+  {{ resources.include_js("static/quant-lite.js") }}
+
+  <script type="text/javascript">
+    {% set html_metadata = resources.pj_metadata.output.html %}
+
+    $(document).ready(function () {
+    // prettify tables (that aren't ignored)
+    $("table:not(.pj-table-ignore)").addClass("table").addClass("table-striped").addClass("table-hover");
+    $("table.dataframe:not(.pj-table-ignore)").removeAttr("border");
+      });
+  </script>
+  {% endblock notebook_js %}
+
+</body>
+{%- endblock body_footer -%}
+
+{%- block footer -%}
+
+</html>
+{%- endblock footer -%}

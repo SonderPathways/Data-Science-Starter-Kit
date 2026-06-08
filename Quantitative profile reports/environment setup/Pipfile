@@ -1,0 +1,23 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+ipykernel = "*"
+numpy = "*"
+pandas = "*"
+geopandas = "*"
+plotly = "*"
+matplotlib = "*"
+rpy2 = "*"
+nbformat = "*"
+pyreadr = "*"
+openpyxl = "*"
+nbconvert = "*"
+pretty-jupyter = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

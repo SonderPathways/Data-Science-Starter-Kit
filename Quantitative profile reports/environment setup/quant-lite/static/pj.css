@@ -1,0 +1,159 @@
+/* a lot of this code was taken from rmd styles directly included in the output html page, license was not present there but it is GPL3 */
+
+pre {
+  white-space: pre-wrap;
+}
+
+span.smallcaps {
+  font-variant: small-caps;
+}
+
+span.underline {
+  text-decoration: underline;
+}
+
+div.column {
+  display: inline-block;
+  vertical-align: top;
+  width: 50%;
+}
+
+div.hanging-indent {
+  margin-left: 1.5em;
+  text-indent: -1.5em;
+}
+
+ul.task-list {
+  list-style: none;
+}
+
+code {
+  white-space: pre;
+}
+
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+img {
+  max-width: 100%;
+}
+
+.tabbed-pane {
+  padding-top: 12px;
+}
+
+.html-widget {
+  margin-bottom: 20px;
+}
+
+button.code-folding-btn:focus {
+  outline: none;
+}
+
+summary {
+  display: list-item;
+}
+
+pre code {
+  padding: 0;
+}
+
+
+h1 {
+  font-size: 34px;
+  text-align: left;
+}
+
+h1.title {
+  font-size: 38px;
+}
+
+h2 {
+  font-size: 30px;
+}
+
+h3 {
+  font-size: 24px;
+}
+
+h4 {
+  font-size: 18px;
+}
+
+h5 {
+  font-size: 16px;
+}
+
+h6 {
+  font-size: 12px;
+}
+
+.table th:not([align]) {
+  text-align: left;
+}
+
+.table-word-wrapped {
+  table-layout: fixed;
+}
+
+.table-word-wrapped td {
+  word-wrap: break-word;
+}
+
+
+h4 em {
+  font-style: normal;
+}
+
+body,
+p {
+  text-align: justify;
+}
+
+body ul,
+body ol {
+  text-align: left;
+}
+
+
+th {
+  text-align: left;
+}
+
+
+@media print {
+
+  h2,
+  h3,
+  h4 {
+    color: #444444 !important;
+  }
+
+  div,
+  p,
+  table {
+    orphans: 3;
+    widows: 3;
+  }
+
+  #TOC {
+    display: none;
+  }
+}
+
+.pagebreak {
+  page-break-before: always;
+}
+
+
+#jup-show-hide-all-menu {
+  margin-right: 15px;
+}
+
+.table-fit {
+  width: 1px;
+}
+
