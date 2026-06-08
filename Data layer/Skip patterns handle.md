@@ -8,7 +8,7 @@ In large-scale demographic surveys like the DHS, **skip patterns** are widely us
 
 In the raw dataset, skipped questions are often assigned specific categorical placeholder values (e.g., "Not applicable", "99", or custom text strings) rather than being left blank. If these placeholders are left untouched during population segmentation or statistical aggregation, they can distort public health metrics by being treated as actual data points.
 
-The **"SKIP PATTERNS HANDLING"** pipeline systematically replaces these questionnaire-driven placeholder values with true system-missing values (`NA`). This cleanses the denominator for each metric, ensuring that only individuals who were genuinely eligible to answer a given question are factored into the final public health profile reports.
+This pipeline systematically replaces these questionnaire-driven placeholder values with true system-missing values (`NA`). This cleanses the denominator for each metric, ensuring that only individuals who were genuinely eligible to answer a given question are factored into the final public health profile reports.
 
 ---
 

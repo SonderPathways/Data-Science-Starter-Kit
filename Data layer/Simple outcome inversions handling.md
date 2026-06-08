@@ -8,7 +8,7 @@ In public health data analysis, indicators are gathered from various modules of 
 
 To deliver clean, intuitive, and unambiguous dashboards or reports for non-technical stakeholders (such as public health policymakers or field designers), it is crucial to standardize the direction of these indicators. The **Pathways Project** standardizes outcomes so that a uniform value alignment is achieved across metrics—typically ensuring that `1` consistently represents a favorable or "desired" health outcome, making it immediately interpretable.
 
-The section **"SIMPLE OUTCOME INVERSIONS HANDLING"** automates the process of flipping binary indicators ($0$ to $1$, and $1$ to $0$) for a pre-defined list of variables that have been flagged as requiring a directional adjustment.
+This section automates the process of flipping binary indicators ($0$ to $1$, and $1$ to $0$) for a pre-defined list of variables that have been flagged as requiring a directional adjustment.
 
 ---
 

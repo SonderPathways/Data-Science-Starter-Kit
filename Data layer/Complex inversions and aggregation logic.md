@@ -12,7 +12,7 @@ In the DHS framework, single indicators are often spread across separate survey 
 * **Age schedules** must be accounted for. Public health metrics dictate that a child should only be penalized for missing a vaccine if they have reached the age threshold where that vaccine is mandated by the schedule (e.g., Measles at 9 or 12+ months).
 * **Unit of Analysis Shifts:** Survey datasets are split into child-level metrics (the `KR` or `BR` files) but need to be reported as aggregate maternal/household vulnerability profiles (the individual woman/mother level in the `IR` file).
 
-The **"MORE COMPLEX OUTCOME INVERSIONS LOGIC"** pipeline standardizes these intricate conditions into clean, multi-variable composite rules and aggregates individual child records up to the mother level, ensuring that `1` consistently reflects a completely protected state or a positive health utilization outcome.
+This pipeline standardizes these intricate conditions into clean, multi-variable composite rules and aggregates individual child records up to the mother level, ensuring that `1` consistently reflects a completely protected state or a positive health utilization outcome.
 
 ---
 
