@@ -1,4 +1,4 @@
-# Section 2: Skip Patterns Handling
+# Section 1: Skip Patterns Handling
 
 ## Part of the series "Pathways Project: Technical Guide to Final Data Transformations"
 

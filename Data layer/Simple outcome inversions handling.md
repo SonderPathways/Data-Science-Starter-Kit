@@ -1,4 +1,4 @@
-# Section 1: Simple Outcome Inversions Handling
+# Section 2: Simple Outcome Inversions Handling
 
 ## Part of the series "Pathways Project: Technical Guide to Final Data Transformations"
 
