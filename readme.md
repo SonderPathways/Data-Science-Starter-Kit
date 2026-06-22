@@ -42,8 +42,8 @@ III. Quantitative Profile Reports
 
 IV. Dead Ends handling for Typing Tools
 
-* [Dead ends handling for TT/readme.md](<Dealing with Logical dead ends in CART Output/readme.md>)
+* [Dead ends handling for TT/readme.md](<Dealing with Logical dead ends in CART Output>)
 
 Other resorces for custom reports:
 
-* [Environment setup](<Quantitative profile reports/environment setup>)
+* [Environment setup](<Quantitative%20profile%20reports/environment setup>)
