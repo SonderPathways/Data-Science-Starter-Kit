@@ -40,6 +40,10 @@ III. Quantitative Profile Reports
 6. [Senegal 2018-2019 1.9](<Quantitative profile reports/Senegal 2018-2019 1.9>)
 7. [Senegal_2018_2019DHS8_1.0](<Quantitative profile reports/Senegal_2018_2019DHS8_1.0>)
 
+IV. Dead Ends handling for Typing Tools
+
+* [Dead ends handling for TT/readme.md](<Dealing with Logical dead ends in CART Output/readme.md>)
+
 Other resorces for custom reports:
 
 * [Environment setup](<Quantitative profile reports/environment setup>)
