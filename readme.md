@@ -42,7 +42,7 @@ III. Quantitative Profile Reports
 
 IV. Dead Ends handling for Typing Tools
 
-* [Dead ends handling for TT/readme.md](<Dealing with Logical dead ends in CART Output>)
+* [Dead ends handling for TT/readme.md](<Dead%20ends%20handling%20for%20TT>)
 
 Other resorces for custom reports:
 
