@@ -1,0 +1,88 @@
+variable_name,short_name,skip_category_north,skip_category_south,in_both,region
+age.1stcohab,Age at first cohabitation,never partnered,never partnered,Yes,Both
+age.1stcohab.cat,Age at first cohabitation (4 category),never,never,Yes,Both
+age.diff.cat,Partner age difference (4 category,Not partnered,,No,North Nigeria
+age.diff.cat1,Partner age difference (5+ years),Not partnered,,No,North Nigeria
+age.diff.cat2,Partner age difference (10+ years),Not partnered,,No,North Nigeria
+age.diff.cat3,Partner age difference (15+ years),Not partnered,,No,North Nigeria
+age.diff.cat4,Partner age difference (18+ years),Not partnered,,No,North Nigeria
+age.diff.cat5,Partner age difference (20+ years),Not partnered,,No,North Nigeria
+bf.beans,Child given beans/peas/lentils,No living child <24months at home,No living child <24months at home,Yes,Both
+bf.meat,Child given meat,No living child <24months at home,No living child <24months at home,Yes,Both
+bf.other.solid,Child given solid/soft food,No living child <24months at home,No living child <24months at home,Yes,Both
+condom.2nd.last.sex,Condom use during last sex (2nd partner),No sex partner in last 12 months,No sex partner in last 12 months,Yes,Both
+condom.3rd.last.sex,Condom use during last sex (3rd partner),No sex partner in last 12 months,No sex partner in last 12 months,Yes,Both
+condom.last.sex,Condom use during last sex,No sex partner in last 12 months,No sex partner in last 12 months,Yes,Both
+desc.fp,Decision maker: family planning,not partnered,not partnered,Yes,Both
+desc.hlth,Decision maker: woman's health,not partnered,not partnered,Yes,Both
+desc.lrgpur,Decision maker: HH purchases,not partnered,not partnered,Yes,Both
+desc.money,Decision maker: partner income,not partnered,not partnered,Yes,Both
+desc.ownincome,Decision maker: own income,Not paid in cash or not working; not partnered,not partnered; Not paid in cash or not working,Yes,Both
+desc.visit,Decision maker: family visits,not partnered,not partnered,Yes,Both
+discharge.checkedhealth,Provider for woman's PNC,No live birth <36 months,No live birth <36 months,Yes,Both
+dv.emotional,IPV: emotional violence,not partnered,not partnered,Yes,Both
+dv.physical,IPV: physical violence,not partnered,not partnered,Yes,Both
+dv.physical.preg,IPV: physical violence during pregnancy,NA - not eligible for questionnaire,NA - not eligible for questionnaire,Yes,Both
+dv.prevparter.forcedsex,IPV: forced by previous partner,Never had another partner,Never had another partner,Yes,Both
+dv.prevparter.hurt,IPV: hurt by previous partner,Never had another partner,Never had another partner,Yes,Both
+dv.sexual,IPV: sexual violence,not partnered,not partnered,Yes,Both
+earnings.rel.partner,Earnings relative to partner,woman did not work; not partnered,not partnered; woman did not work,Yes,Both
+fertility.pref,Fertility preference,sterilized/infecund,sterilized/infecund,Yes,Both
+first.wife,Polygamy status,not partnered,not partnered,Yes,Both
+jd.fp.cat,Joint decision: family planning,Not partnered,Not partnered,Yes,Both
+jd.hlth.cat,Joint decision: woman's health,Not partnered,Not partnered,Yes,Both
+jd.index,Joint decision making index,not partnered,not partnered,Yes,Both
+jd.index.cat,Joint decision making index (4 category),Not partnered,Not partnered,Yes,Both
+jd.index.cat1,,Not partnered,,No,North Nigeria
+jd.lrgpur.cat,Joint decision: HH purchases,Not partnered,Not partnered,Yes,Both
+jd.money.cat,Joint decision: partner income,Not partnered,Not partnered,Yes,Both
+jd.ownincome.cat,Joint decision: own income,Not paid in cash or not working; Not partnered,Not partnered; Not paid in cash or not working,Yes,Both
+jd.visit.cat,Joint decision: family visits,Not partnered,Not partnered,Yes,Both
+jdwd.fp.cat,Decides family planning,Not partnered,Not partnered,Yes,Both
+jdwd.hlth.cat,Decides her own health,Not partnered,Not partnered,Yes,Both
+jdwd.index,Decision making involvement index,not partnered,not partnered,Yes,Both
+jdwd.index.cat,Decision making involvement index (4 category),Not partnered,Not partnered,Yes,Both
+jdwd.lrgpur.cat,Decides HH purchases,Not partnered,Not partnered,Yes,Both
+jdwd.money.cat,Decides partner income,Not partnered,Not partnered,Yes,Both
+jdwd.ownincome.cat,Decides own income,Not paid in cash or not working; Not partnered,Not partnered; Not paid in cash or not working,Yes,Both
+jdwd.visit.cat,Decides family visits,Not partnered,Not partnered,Yes,Both
+marital.cat,Marital status,never in union,never in union,Yes,Both
+occ.type,Employer type,Did not work,Did not work,Yes,Both
+occ.type.cat,Employer type,Did not work,,No,North Nigeria
+occu.w.prof,Professional occupation,Not working,,No,North Nigeria
+occupation,Occupation (9 category),not working,not working,Yes,Both
+occupation.cat,Occupation (6 category),not working,not working,Yes,Both
+partner.absent,Partner lives elsewhere,not partnered,not partnered,Yes,Both
+partner.age,Partner age,not partnered,not partnered,Yes,Both
+partner.age.cat,Partner age (6 category),not partnered,not partnered,Yes,Both
+partner.desire.child,Partner's desire for children,not partnered,not partnered,Yes,Both
+partner.desire.child.cat,Partner's desire for children (3 category),Don't know or no partner,,No,North Nigeria
+partner.ed.level,Education level (partner),not partnered,not partnered,Yes,Both
+partner.ed.level.cat1,Education level (partner) (3 cat),not partnered,not partnered,Yes,Both
+partner.ed.level.cat2,Education level (partner) (4 cat),Not partnered,Not partnered,Yes,Both
+partner.ed.level.cat3,Education level (partner) (3 category),,Not partnered,No,South Nigeria
+partner.occupation,Occupation (partner),not working and didn't work in last 12 months,not working and didn't work in last 12 months,Yes,Both
+partner.occupation.cat,Occupation (partner) (7 category),not working; not partnered,not partnered; not working,Yes,Both
+partner.occupation.cat.2,Occupation (partner) (6 category),,"not partnered, not working, other/dk",No,South Nigeria
+partner.working,Employment status (partner),not partnered,not partnered,Yes,Both
+polygamy,Polygamous relationship,not partnered,not partnered,Yes,Both
+preg.wanted,Pregnancy was wanted,NA - no child last 3/5 yrs,NA - no child last 3/5 yrs,Yes,Both
+prev.pship,More than one union,Never in union,Never in union,Yes,Both
+pship.cat,Marital status (3 category),no partner now; never,no partner now; never,Yes,Both
+pship.status,Marital status (6 category),never in union,never in union,Yes,Both
+unmet.fp.need,Unmet contraceptive need (cetegorical),"NA (infecund, menopausal, no sex)","NA (infecund, menopausal, no sex)",Yes,Both
+wd.fp.cat,Own decision: family planning,Not partnered,Not partnered,Yes,Both
+wd.hlth.cat,Own decision: woman's health,Not partnered,Not partnered,Yes,Both
+wd.index,Own decision making index,not partnered,not partnered,Yes,Both
+wd.index.cat,Own decision making index (4 category),Not partnered,Not partnered,Yes,Both
+wd.index.cat1,Own decision making index (3 category),Not partnered,,No,North Nigeria
+wd.lrgpur.cat,Own decision: HH purchases,Not partnered,Not partnered,Yes,Both
+wd.money.cat,Own decision: partner income,Not partnered,Not partnered,Yes,Both
+wd.ownincome.cat,Own decision: own income,Not paid in cash or not working; Not partnered,Not partnered; Not paid in cash or not working,Yes,Both
+wd.visit.cat,Own decision: family visits,Not partnered,Not partnered,Yes,Both
+wife.order,Wife rank,not partnered,not partnered,Yes,Both
+work.seasonal,Employment continuity (4 cat),No work in past 12 months,No work in past 12 months,Yes,Both
+work.seasonal2,Employment continuity (3 cat),No work in past 12 months,No work in past 12 months,Yes,Both
+working,Employment status,No work in the past 12 months,No work in the past 12 months,Yes,Both
+yrs.curr.pship,Duration of current union,not partnered,not partnered,Yes,Both
+yrs.curr.pship.cat,Duration of first union (5 category),Never in union,Never in union,Yes,Both
